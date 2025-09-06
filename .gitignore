@@ -1,0 +1,42 @@
+
+# Composer lock file if you want to ignore
+# composer.lock
+
+# PHPStorm / JetBrains IDE
+/.idea/
+/*.iml
+
+# VSCode
+.vscode/
+
+# Log files
+*.log
+*.cache
+
+# Cache and temp directories
+/tmp/
+/cache/
+/sessions/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# PHPUnit / test coverage
+coverage/
+phpunit.xml.cache
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Ignore generated files
+*.bak
+*.swp
+*.zip
+*.tar.gz
+
+# Xdebug profiling/output files
+*.xhprof
+*.prof

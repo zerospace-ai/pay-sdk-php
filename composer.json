@@ -1,0 +1,22 @@
+{
+    "name": "cryptopay/chain",
+    "description": "CryptoPay PHP, An object-oriented library for calling CryptoPay payment channels",
+    "homepage": "https://github.com/zerospace-ai/pay-sdk-php",
+    "type": "composer",
+    "license": "MIT",
+    "support": {
+        "source": "https://github.com/zerospace-ai/pay-sdk-php"
+    },
+    "autoload": {
+        "psr-4": {
+            "Cryptopay\\Chain\\": "src/"
+        }
+    },
+    "require": {
+        "php": ">=7.0"
+    },
+    "minimum-stability": "dev",
+    "config": {
+        "process-timeout": 1800
+    }
+}
