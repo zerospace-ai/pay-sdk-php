@@ -22,4 +22,7 @@ $sn = '202408080808081';
 
 $result = $cryptoPay->withdraw($open_id, $token_id, $amount, $address, $callback_url, $sn);
 
+print_r($result);
+echo "\n";
+
 

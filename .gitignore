@@ -40,3 +40,6 @@ phpunit.xml.cache
 # Xdebug profiling/output files
 *.xhprof
 *.prof
+xdebug-3.4.5/
+xdebug-3.4.5.tgz
+*.tgz  # 如果要忽略源代码包
