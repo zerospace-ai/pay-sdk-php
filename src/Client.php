@@ -12,10 +12,9 @@ class Client
     {
         $this->config = $config;
 
-        $this->config['public_key'] = isset($this->config['public_key']) ? $this->handelPublicKey($this->config['public_key']) : '';
-        $this->config['private_key'] = isset($this->config['private_key']) ? $this->handelPrivateKey($this->config['private_key']) : '';
-        $this->config['chain_public_key'] = isset($this->config['chain_public_key']) ? $this->handelPublicKey($this->config['chain_public_key']) : '';
-        $this->config['chain_withdraw_public_key'] = isset($this->config['chain_withdraw_public_key']) ? $this->handelPublicKey($this->config['chain_withdraw_public_key']) : '';
+        $this->config['PlatformPubKey'] = isset($this->config['PlatformPubKey']) ? $this->handelPublicKey($this->config['PlatformPubKey']) : '';
+        $this->config['RsaPrivateKey'] = isset($this->config['RsaPrivateKey']) ? $this->handelPrivateKey($this->config['RsaPrivateKey']) : '';
+        $this->config['PlatformRiskPubKey'] = isset($this->config['PlatformRiskPubKey']) ? $this->handelPublicKey($this->config['PlatformRiskPubKey']) : '';
 
         $this->timestamp = $this->getMillisecond();
     }
@@ -56,7 +55,7 @@ class Client
         }
         $dataStr = implode('&', $dataArray);
 
-        return md5($this->config['secret'] . $dataStr . $this->timestamp);
+        return md5($this->config['ApiSecret'] . $dataStr . $this->timestamp);
     }
 
     /**
@@ -69,7 +68,7 @@ class Client
             $signString = self::getSignString($data);
         else
             $signString = $data;
-        $privKeyId = openssl_pkey_get_private($this->config['private_key']);
+        $privKeyId = openssl_pkey_get_private($this->config['RsaPrivateKey']);
         $signature = '';
         openssl_sign($signString, $signature, $privKeyId, OPENSSL_ALGO_MD5);
         // openssl_free_key($privKeyId);
@@ -85,7 +84,7 @@ class Client
     public function checkSignature($data, $sign)
     {
         $toSign = self::getSignString($data);
-        $publicKeyId = openssl_pkey_get_public($this->config['chain_public_key']);
+        $publicKeyId = openssl_pkey_get_public($this->config['PlatformPubKey']);
         $result = openssl_verify($toSign, base64_decode($sign), $publicKeyId, OPENSSL_ALGO_MD5);
         // openssl_free_key($publicKeyId);
         return $result === 1 ? true : false;
@@ -100,7 +99,7 @@ class Client
     public function checkWithdrawSignature($data, $sign)
     {
         $toSign = self::getSignString($data);
-        $publicKeyId = openssl_pkey_get_public($this->config['chain_withdraw_public_key']);
+        $publicKeyId = openssl_pkey_get_public($this->config['PlatformRiskPubKey']);
         $result = openssl_verify($toSign, base64_decode($sign), $publicKeyId, OPENSSL_ALGO_MD5);
         // openssl_free_key($publicKeyId);
         return $result === 1 ? true : false;
@@ -149,10 +148,8 @@ class Client
     {
         unset($data['sign']); // 去掉 sign
 
-        // 按 key 排序（忽略大小写）
-        uksort($data, function ($a, $b) {
-            return strcasecmp($a, $b);
-        });
+        // Top-level keys must be sorted case-sensitively (ASCII order) to match Go's sort.Strings
+        ksort($data, SORT_STRING);
 
         $pairs = [];
         foreach ($data as $k => $v) {
@@ -171,7 +168,7 @@ class Client
         $sign = $this->sign($data);
         $clientSign = $this->encryption($data);
         $header = [
-            "key:{$this->config['key']}",
+            "key:{$this->config['ApiKey']}",
             "sign:{$sign}",
             "clientSign:{$clientSign}",
             "Content-Type:application/json",

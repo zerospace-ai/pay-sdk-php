@@ -1,164 +1,92 @@
-# Примеры 📝
+# Примеры кода и инструменты
 
-Этот документ предоставляет примеры использования CryptoPay Php SDK, включая запуск Demo, генерацию ключей и обработку обратных вызовов.
+Этот документ разделен на две части:
+1. **Примеры кода на основе сценариев:** Демонстрирует, как обрабатывать вызовы API и проверку в реальном коде.
+2. **Руководство по инструментам CLI:** Объясняет, как использовать скрипты, включенные в SDK, для быстрого тестирования.
 
-## 1 Объект экземпляра SDK 🛠️
+---
 
-### 1.1 Необходимая конфигурация ⚙️
+## 1. Примеры кода на основе сценариев
 
-1. Зарегистрируйте название вашего бизнеса и получите `ApiKey` и `ApiSecret`;
+### 1.1 Полный вызов API и проверка ответа
 
-2. Сгенерируйте свою собственную пару ключей `RSA`;
-
-3. Подготовьте публичный ключ `RSA` платформы;
-
-### 1.2 Создание объекта подписи 🔏
-
-1. Добавьте файл конфигурации `config.yaml`.
-
-```yaml
-# Настройка информации о бизнесе
-ApiKey: ""
-ApiSecret: ""
-# Публичный ключ платформы
-PlatformPubKey: ""
-# Публичный ключ для блокировки платформы
-PlatformRiskPubKey: ""
-# Ваш собственный приватный ключ
-RsaPrivateKey: ""
-```
-
-2. Загрузите файл конфигурации и создайте объект API.
+Следующий код показывает, как использовать SDK для создания запроса «Создать пользователя», отправки HTTP-запроса и выполнения проверки безопасности подписи данных, возвращенной платформой.
 
 ```php
+<?php
+require __DIR__.'/../vendor/autoload.php';
 
-	viper.SetConfigFile("config.yaml")
-	viper.AddConfigPath(".")
-	if err := viper.ReadInConfig(); err != nil {
-		panic(fmt.Sprintf("Failed to load config: %s", err))
-	}
-	apiObj := api.NewSDK(api.SDKConfig{
-		ApiKey:             viper.GetString("ApiKey"),
-		ApiSecret:          viper.GetString("ApiSecret"),
-		PlatformPubKey:     viper.GetString("PlatformPubKey"),
-		PlatformRiskPubKey: viper.GetString("PlatformRiskPubKey"),
-		RsaPrivateKey:      viper.GetString("RsaPrivateKey"),
-	})
+use Cryptopay\Chain\CryptoPay;
 
+function main() {
+    // 1. Инициализация конфигурации
+    $config = [
+        'ApiKey' => 'your_api_key',
+        'ApiSecret' => 'your_api_secret',
+        'RsaPrivateKey' => 'your_rsa_private_key',
+        'PlatformPubKey' => 'platform_public_key',
+    ];
+
+    // 2. Создание экземпляра SDK
+    $cryptoPay = new CryptoPay($config);
+
+    // 3. Вызов API: Создать пользователя
+    $openId = 'php_user_' . time();
+    $result = $cryptoPay->createUser($openId);
+
+    if (!$result) {
+        echo "Запрос не удался\n";
+        return;
+    }
+
+    // 4. Парсинг и проверка ответа
+    $postData = json_decode($result, true);
+
+    if ($postData['code'] != 1) {
+        echo "Ошибка ответа! Код: " . $postData['code'] . ", Сообщение: " . $postData['msg'] . "\n";
+        return;
+    }
+
+    // Проверка подписи платформы
+    if ($cryptoPay->verifyRsaSignature($postData)) {
+        echo "✅ Запрос успешен и подтвержден! OpenId: " . $postData['data']['OpenId'] . "\n";
+    } else {
+        echo "❌ Ошибка проверки подписи!\n";
+    }
+}
+
+main();
 ```
 
-### 1.3 Создание и подпись данных запроса. ✍️
 
-Возьмем создание пользователя в качестве примера.
+---
 
-```php
+## 2. Руководство по инструментам CLI
 
-  // ....
-	openId := "HASH1756194148"
+SDK предоставляет скрипты командной строки для быстрого тестирования различных интерфейсов.
 
-	reqBody, timestamp, sign, clientSign, err := apiObj.CreateUser(openId)
-	if err != nil {
-		logrus.Warnln("Error: ", err)
-		return
-	}
+### 2.1 Установка зависимостей
 
-```
+Выполните команду `composer install` в корневом каталоге SDK, чтобы установить необходимые зависимости.
 
-```php
-    dataStr := rsa_utils.ComposeParams(mapData)
+### 2.2 Команды тестирования интерфейса
 
-	timestamp = strconv.FormatInt(time.Now().UnixMilli(), 10)
-	sign = s.public function sign($data)(dataStr, timestamp)
+#### Регистрация нового пользователя
+1. Измените `OpenId` в `example/create_user.php`.
+2. Запустите `php example/create_user.php`.
 
-	jStr, err := json.Marshal(&req)
-	if err != nil {
-		return nil, timestamp, sign, clientSign, err
-	}
+#### Регистрация кошелька
+1. Укажите `UserOpenId` и `ChainID` в `example/create_wallet.php`.
+2. Запустите `php example/create_wallet.php`.
 
-	reqMapObj := rsa_utils.ToStringMap(jStr)
-	clientSign, err = s.public function encryption($data)(reqMapObj)
-```
+#### Получить адрес для пополнения
+1. Укажите `UserOpenId` и `ChainIDs` для запроса (например, "1,56") в `example/get_wallet_addresses.php`.
+2. Запустите `php example/get_wallet_addresses.php`.
 
-### 1.4 Заполнение и инициирование запроса 🚀
+#### Подать заявку на вывод средств
+1. Укажите `UserOpenId`, `TokenId`, `Amount`, `AddressTo`, `SafeCheckCode` и `CallBackUrl` в `example/withdraw.php`.
+2. Запустите `php example/withdraw.php`.
 
-```php
-  // ....
-	
-	finalURL, err := url.JoinPath(api.DevNetEndpoint, api.PathCreateWallet)
-	if err != nil {
-		logrus.Warnln("Error: ", err)
-		return
-	}
-
-	resp, err := client.R().
-		SetHeader("Content-Type", "application/json").
-		SetBody(reqBody).
-		SetHeader("key", apiObj.GetApiKey()).
-		SetHeader("timestamp", timestamp).
-		SetHeader("sign", sign).
-		SetHeader("clientSign", clientSign).
-		Post(finalURL)
-
-```
-
-### 1.5 Проверка и разбор возвращаемых данных ✅
-
-```php
-
-	rspCommon := response_define.ResponseCommon{}
-	err = json.Unmarshal(body, &rspCommon)
-	if err != nil {
-		logrus.Warnln("Error: ", err)
-		return
-	}
-	logrus.Infoln("Response: ", rspCommon)
-
-	if rspCommon.Code != response_define.SUCCESS {
-		logrus.Warnln("Response fail Code", rspCommon.Code, "Msg", rspCommon.Msg)
-		return
-	}
-
-	rspCreateUser := response_define.ResponseCreateUser{}
-	err = json.Unmarshal(body, &rspCreateUser)
-	if err != nil {
-		logrus.Warnln("Error: ", err)
-		return
-	}
-	logrus.Infoln("ResponseCreateUser: ", rspCreateUser)
-
-	mapObj := rsa_utils.ToStringMap(body)
-	err = apiObj.VerifyRSAsignature(mapObj, rspCreateUser.Sign)
-	if err != nil {
-		logrus.Warnln("Error: ", err)
-		return
-	}
-
-```
-
-1. Вызов команды 📞
-
-2.1. Регистрация нового пользователя 🆕
-
-Перейдите в каталог SDK pay_sdk_php/ и измените переменную $open_id.
-
-Затем выполните php  example/create_user.php, чтобы зарегистрировать нового пользователя на платформе.
-
-Если попытаться зарегистрировать уже зарегистрированный open_id, будет возвращена ошибка.
-
-2.2. Регистрация кошелька 💼
-
-Перейдите в каталог SDK pay_sdk_php/ и измените переменные $open_id и $chain_id.
-
-Затем выполните php  example/create_wallet.php, чтобы завершить регистрацию кошелька пользователя на платформе.
-
-2.3. Получение адреса для пополнения 📍
-
-Перейдите в каталог SDK pay_sdk_php/ и измените переменные $open_id и $chain_ids.
-
-Затем выполните php  example/get_wallet_addresses.php.
-
-2.4. Вывод средств 💸
-
-Перейдите в каталог SDK pay_sdk_php/ и измените переменные $open_id, $token_id, $amount, $address, $callback_url (необязательно), $sn (необязательно).
-
-Затем выполните php  example/withdraw.php.
+#### Создать ордер кассира
+1. Укажите `outOrderNo`, `tokenId`, `quantity` и `notifyUrl` в `example/new_order.php`.
+2. Запустите `php example/new_order.php`.

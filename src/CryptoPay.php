@@ -90,5 +90,22 @@ class CryptoPay
         return $this->client->checkwithdrawSignature($data, $data['sign']);
     }
 
+    /**
+     * @param $out_order_no
+     * @param $token_id
+     * @param $quantity
+     * @param $notify_url
+     * @return bool|string
+     */
+    public function newOrder($out_order_no, $token_id, $quantity, $notify_url){
+        $data = [
+            'outOrderNo' => $out_order_no,
+            'tokenId' => $token_id,
+            'quantity' => $quantity,
+            'notifyUrl' => $notify_url,
+        ];
+
+        return $this->client->post("{$this->baseUrl}api/v2/exchange/cashier/newOrder", $data);
+    }
 
 }

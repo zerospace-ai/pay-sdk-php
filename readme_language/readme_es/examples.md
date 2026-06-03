@@ -1,164 +1,92 @@
-# Ejemplos 📝
+# Ejemplos de Código y Herramientas
 
-Este documento proporciona ejemplos de uso para el CryptoPay Php SDK, incluyendo la ejecución de Demo, generación de claves y manejo de callbacks.
+Este documento se divide en dos partes:
+1. **Ejemplos de Código Basados en Escenarios:** Muestra cómo manejar las llamadas a la API y la verificación en código real.
+2. **Guía de Herramientas de CLI:** Explica cómo usar los scripts incluidos en el SDK para pruebas rápidas.
 
-## 1 Objeto de Instancia SDK 🛠️
+---
 
-### 1.1 Configuración Requerida ⚙️
+## 1. Ejemplos de Código Basados en Escenarios
 
-1. Registre su nombre de negocio y obtenga el `ApiKey` y `ApiSecret`;
+### 1.1 Llamada Completa a la API y Verificación de Respuesta
 
-2. Genere su propio par de claves `RSA`;
-
-3. Prepare la clave pública `RSA` de la plataforma;
-
-### 1.2 Creando un Objeto de Firma 🔏
-
-1. Agregue un archivo de configuración `config.yaml`.
-
-```yaml
-# Configurar información de negocio
-ApiKey: ""
-ApiSecret: ""
-# Clave pública de la plataforma
-PlatformPubKey: ""
-# Clave pública para bloquear la plataforma
-PlatformRiskPubKey: ""
-# Su propia clave privada
-RsaPrivateKey: ""
-```
-
-2. Cargue el archivo de configuración y cree el objeto API.
+El siguiente código muestra cómo usar el SDK para construir una solicitud de "Crear Usuario", enviar una solicitud HTTP y realizar la verificación de seguridad en la firma de datos devuelta por la plataforma.
 
 ```php
+<?php
+require __DIR__.'/../vendor/autoload.php';
 
-	viper.SetConfigFile("config.yaml")
-	viper.AddConfigPath(".")
-	if err := viper.ReadInConfig(); err != nil {
-		panic(fmt.Sprintf("Failed to load config: %s", err))
-	}
-	apiObj := api.NewSDK(api.SDKConfig{
-		ApiKey:             viper.GetString("ApiKey"),
-		ApiSecret:          viper.GetString("ApiSecret"),
-		PlatformPubKey:     viper.GetString("PlatformPubKey"),
-		PlatformRiskPubKey: viper.GetString("PlatformRiskPubKey"),
-		RsaPrivateKey:      viper.GetString("RsaPrivateKey"),
-	})
+use Cryptopay\Chain\CryptoPay;
 
+function main() {
+    // 1. Inicializar configuración
+    $config = [
+        'ApiKey' => 'your_api_key',
+        'ApiSecret' => 'your_api_secret',
+        'RsaPrivateKey' => 'your_rsa_private_key',
+        'PlatformPubKey' => 'platform_public_key',
+    ];
+
+    // 2. Crear instancia del SDK
+    $cryptoPay = new CryptoPay($config);
+
+    // 3. Llamar a la API: Crear Usuario
+    $openId = 'php_user_' . time();
+    $result = $cryptoPay->createUser($openId);
+
+    if (!$result) {
+        echo "Solicitud fallida\n";
+        return;
+    }
+
+    // 4. Analizar y verificar respuesta
+    $postData = json_decode($result, true);
+
+    if ($postData['code'] != 1) {
+        echo "¡Respuesta fallida! Código: " . $postData['code'] . ", Msg: " . $postData['msg'] . "\n";
+        return;
+    }
+
+    // Verificar firma de la plataforma
+    if ($cryptoPay->verifyRsaSignature($postData)) {
+        echo "✅ ¡Solicitud exitosa y verificada! OpenId: " . $postData['data']['OpenId'] . "\n";
+    } else {
+        echo "❌ ¡La verificación de la firma falló!\n";
+    }
+}
+
+main();
 ```
 
-### 1.3 Crear y firmar los datos de solicitud. ✍️
 
-Usemos la creación de usuario como ejemplo.
+---
 
-```php
+## 2. Guía de Herramientas de CLI
 
-  // ....
-	openId := "HASH1756194148"
+El SDK proporciona scripts de línea de comandos para pruebas rápidas de varias interfaces.
 
-	reqBody, timestamp, sign, clientSign, err := apiObj.CreateUser(openId)
-	if err != nil {
-		logrus.Warnln("Error: ", err)
-		return
-	}
+### 2.1 Instalar Dependencias
 
-```
+Ejecute el comando `composer install` en el directorio raíz del SDK para instalar las dependencias necesarias.
 
-```php
-    dataStr := rsa_utils.ComposeParams(mapData)
+### 2.2 Probar Comandos de Interfaz
 
-	timestamp = strconv.FormatInt(time.Now().UnixMilli(), 10)
-	sign = s.public function sign($data)(dataStr, timestamp)
+#### Registrar Nuevo Usuario
+1. Modifique `OpenId` en `example/create_user.php`.
+2. Ejecute `php example/create_user.php`.
 
-	jStr, err := json.Marshal(&req)
-	if err != nil {
-		return nil, timestamp, sign, clientSign, err
-	}
+#### Registro de Billetera
+1. Especifique `UserOpenId` y `ChainID` en `example/create_wallet.php`.
+2. Ejecute `php example/create_wallet.php`.
 
-	reqMapObj := rsa_utils.ToStringMap(jStr)
-	clientSign, err = s.public function encryption($data)(reqMapObj)
-```
+#### Obtener Dirección de Depósito
+1. Especifique `UserOpenId` y los `ChainIDs` a consultar (p. ej., "1,56") en `example/get_wallet_addresses.php`.
+2. Ejecute `php example/get_wallet_addresses.php`.
 
-### 1.4 Rellenar e Iniciar la Solicitud 🚀
+#### Solicitar Retiro
+1. Especifique `UserOpenId`, `TokenId`, `Amount`, `AddressTo`, `SafeCheckCode` y `CallBackUrl` en `example/withdraw.php`.
+2. Ejecute `php example/withdraw.php`.
 
-```php
-  // ....
-	
-	finalURL, err := url.JoinPath(api.DevNetEndpoint, api.PathCreateWallet)
-	if err != nil {
-		logrus.Warnln("Error: ", err)
-		return
-	}
-
-	resp, err := client.R().
-		SetHeader("Content-Type", "application/json").
-		SetBody(reqBody).
-		SetHeader("key", apiObj.GetApiKey()).
-		SetHeader("timestamp", timestamp).
-		SetHeader("sign", sign).
-		SetHeader("clientSign", clientSign).
-		Post(finalURL)
-
-```
-
-### 1.5 Verificar el análisis de los datos de retorno ✅
-
-```php
-
-	rspCommon := response_define.ResponseCommon{}
-	err = json.Unmarshal(body, &rspCommon)
-	if err != nil {
-		logrus.Warnln("Error: ", err)
-		return
-	}
-	logrus.Infoln("Response: ", rspCommon)
-
-	if rspCommon.Code != response_define.SUCCESS {
-		logrus.Warnln("Response fail Code", rspCommon.Code, "Msg", rspCommon.Msg)
-		return
-	}
-
-	rspCreateUser := response_define.ResponseCreateUser{}
-	err = json.Unmarshal(body, &rspCreateUser)
-	if err != nil {
-		logrus.Warnln("Error: ", err)
-		return
-	}
-	logrus.Infoln("ResponseCreateUser: ", rspCreateUser)
-
-	mapObj := rsa_utils.ToStringMap(body)
-	err = apiObj.VerifyRSAsignature(mapObj, rspCreateUser.Sign)
-	if err != nil {
-		logrus.Warnln("Error: ", err)
-		return
-	}
-
-```
-
-1. Llamada de Comando 📞
-
-2.1. Registro de Nuevo Usuario 🆕
-
-Ingrese al directorio SDK pay_sdk_php/ y modifique la variable $open_id.
-
-Luego ejecute php  example/create_user.php para registrar un nuevo usuario en la plataforma.
-
-Si intenta registrar un open_id que ya está registrado, se devolverá un error.
-
-2.2. Registro de Wallet 💼
-
-Ingrese al directorio SDK pay_sdk_php/ y modifique las variables $open_id y $chain_id.
-
-Luego ejecute php  example/create_wallet.php para completar el registro de la wallet del usuario en la plataforma.
-
-2.3. Obtener Dirección de Depósito 📍
-
-Ingrese al directorio SDK pay_sdk_php/ y modifique las variables $open_id y $chain_ids.
-
-Luego ejecute php  example/get_wallet_addresses.php.
-
-2.4. Retiro 💸
-
-Ingrese al directorio SDK pay_sdk_php/ y modifique las variables $open_id, $token_id, $amount, $address, $callback_url(opcional), $sn(opcional).
-
-Luego ejecute php  example/withdraw.php.
+#### Crear Orden de Cajero
+1. Especifique `outOrderNo`, `tokenId`, `quantity` y `notifyUrl` en `example/new_order.php`.
+2. Ejecute `php example/new_order.php`.

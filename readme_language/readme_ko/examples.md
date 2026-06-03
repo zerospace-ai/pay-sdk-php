@@ -1,167 +1,92 @@
-# 예시 📝
+# 코드 예제 및 도구
 
-이 문서는 CryptoPay Php SDK의 사용 예시를 제공합니다. 데모 실행, 키 생성 및 콜백 처리 등을 포함합니다.
+이 문서는 두 부분으로 나뉩니다.
+1. **시나리오 기반 코드 예제:** 실제 코드에서 API 호출 및 검증을 처리하는 방법을 보여줍니다.
+2. **CLI 도구 가이드:** 빠른 테스트를 위해 SDK에 포함된 스크립트를 사용하는 방법을 설명합니다.
 
-## 1 SDK 인스턴스 객체 🛠️
+---
 
-### 1.1 필수 구성 ⚙️
+## 1. 시나리오 기반 코드 예제
 
-1. 비즈니스 이름을 등록하고 `ApiKey`와 `ApiSecret`을 얻습니다;
+### 1.1 완전한 API 호출 및 응답 검증
 
-2. 자신의 `RSA` 키 쌍을 생성합니다;
-
-3. 플랫폼의 `RSA` 공개 키를 준비합니다;
-
-### 1.2 서명 객체 생성 🔏
-
-1. 구성 파일 `config.yaml`을 추가합니다.
-
-```yaml
-# 비즈니스 정보 구성
-ApiKey: ""
-ApiSecret: ""
-# 플랫폼 공개 키
-PlatformPubKey: ""
-# 플랫폼 차단용 공개 키
-PlatformRiskPubKey: ""
-# 자신의 개인 키
-RsaPrivateKey: ""
-```
-
-2. 구성 파일을 로드하고 API 객체를 생성합니다.
+다음 코드는 SDK를 사용하여 "사용자 생성" 요청을 구성하고, HTTP 요청을 보내고, 플랫폼에서 반환된 데이터 서명에 대해 보안 검증을 수행하는 방법을 보여줍니다.
 
 ```php
+<?php
+require __DIR__.'/../vendor/autoload.php';
 
-	viper.SetConfigFile("config.yaml")
-	viper.AddConfigPath(".")
-	if err := viper.ReadInConfig(); err != nil {
-		panic(fmt.Sprintf("Failed to load config: %s", err))
-	}
-	apiObj := api.NewSDK(api.SDKConfig{
-		ApiKey:             viper.GetString("ApiKey"),
-		ApiSecret:          viper.GetString("ApiSecret"),
-		PlatformPubKey:     viper.GetString("PlatformPubKey"),
-		PlatformRiskPubKey: viper.GetString("PlatformRiskPubKey"),
-		RsaPrivateKey:      viper.GetString("RsaPrivateKey"),
-	})
+use Cryptopay\Chain\CryptoPay;
 
+function main() {
+    // 1. 구성 초기화
+    $config = [
+        'ApiKey' => 'your_api_key',
+        'ApiSecret' => 'your_api_secret',
+        'RsaPrivateKey' => 'your_rsa_private_key',
+        'PlatformPubKey' => 'platform_public_key',
+    ];
+
+    // 2. SDK 인스턴스 생성
+    $cryptoPay = new CryptoPay($config);
+
+    // 3. API 호출: 사용자 생성
+    $openId = 'php_user_' . time();
+    $result = $cryptoPay->createUser($openId);
+
+    if (!$result) {
+        echo "요청 실패\n";
+        return;
+    }
+
+    // 4. 응답 구문 분석 및 검증
+    $postData = json_decode($result, true);
+
+    if ($postData['code'] != 1) {
+        echo "응답 실패! 코드: " . $postData['code'] . ", 메시지: " . $postData['msg'] . "\n";
+        return;
+    }
+
+    // 플랫폼 서명 검증
+    if ($cryptoPay->verifyRsaSignature($postData)) {
+        echo "✅ 요청 성공 및 검증 완료! OpenId: " . $postData['data']['OpenId'] . "\n";
+    } else {
+        echo "❌ 서명 검증 실패!\n";
+    }
+}
+
+main();
 ```
 
-### 1.3 요청 데이터 생성 및 서명 ✍️
 
-사용자 생성을 예로 들어 보겠습니다.
+---
 
-```php
+## 2. CLI 도구 가이드
 
-  // ....
-	openId := "HASH1756194148"
+SDK는 다양한 인터페이스를 빠르게 테스트할 수 있는 명령줄 스크립트를 제공합니다.
 
-	reqBody, timestamp, sign, clientSign, err := apiObj.CreateUser(openId)
-	if err != nil {
-		logrus.Warnln("Error: ", err)
-		return
-	}
+### 2.1 종속성 설치
 
-```
+SDK 루트 디렉토리에서 `composer install` 명령을 실행하여 필요한 종속성을 설치합니다.
 
-```php
-    dataStr := rsa_utils.ComposeParams(mapData)
+### 2.2 인터페이스 명령 테스트
 
-	timestamp = strconv.FormatInt(time.Now().UnixMilli(), 10)
-	sign = s.public function sign($data)(dataStr, timestamp)
+#### 새 사용자 등록
+1. `example/create_user.php`에서 `OpenId`를 수정합니다.
+2. `php example/create_user.php`를 실행합니다.
 
-	jStr, err := json.Marshal(&req)
-	if err != nil {
-		return nil, timestamp, sign, clientSign, err
-	}
+#### 지갑 등록
+1. `example/create_wallet.php`에서 `UserOpenId`와 `ChainID`를 지정합니다.
+2. `php example/create_wallet.php`를 실행합니다.
 
-	reqMapObj := rsa_utils.ToStringMap(jStr)
-	clientSign, err = s.public function encryption($data)(reqMapObj)
-```
+#### 입금 주소 가져오기
+1. `example/get_wallet_addresses.php`에서 `UserOpenId`와 조회할 `ChainIDs`(예: "1,56")를 지정합니다.
+2. `php example/get_wallet_addresses.php`를 실행합니다.
 
-### 1.4 요청 채우기 및 시작 🚀
+#### 출금 신청
+1. `example/withdraw.php`에서 `UserOpenId`, `TokenId`, `Amount`, `AddressTo`, `SafeCheckCode`, `CallBackUrl`을 지정합니다.
+2. `php example/withdraw.php`를 실행합니다.
 
-```php
-  // ....
-	
-	finalURL, err := url.JoinPath(api.DevNetEndpoint, api.PathCreateWallet)
-	if err != nil {
-		logrus.Warnln("Error: ", err)
-		return
-	}
-
-	resp, err := client.R().
-		SetHeader("Content-Type", "application/json").
-		SetBody(reqBody).
-		SetHeader("key", apiObj.GetApiKey()).
-		SetHeader("timestamp", timestamp).
-		SetHeader("sign", sign).
-		SetHeader("clientSign", clientSign).
-		Post(finalURL)
-
-```
-
-### 1.5 반환 데이터 검증 및 파싱 ✅
-
-```php
-
-	rspCommon := response_define.ResponseCommon{}
-	err = json.Unmarshal(body, &rspCommon)
-	if err != nil {
-		logrus.Warnln("Error: ", err)
-		return
-	}
-	logrus.Infoln("Response: ", rspCommon)
-
-	if rspCommon.Code != response_define.SUCCESS {
-		logrus.Warnln("Response fail Code", rspCommon.Code, "Msg", rspCommon.Msg)
-		return
-	}
-
-	rspCreateUser := response_define.ResponseCreateUser{}
-	err = json.Unmarshal(body, &rspCreateUser)
-	if err != nil {
-		logrus.Warnln("Error: ", err)
-		return
-	}
-	logrus.Infoln("ResponseCreateUser: ", rspCreateUser)
-
-	mapObj := rsa_utils.ToStringMap(body)
-	err = apiObj.VerifyRSAsignature(mapObj, rspCreateUser.Sign)
-	if err != nil {
-		logrus.Warnln("Error: ", err)
-		return
-	}
-
-```
-好的，這裡是翻譯成韓文的版本（保留英文字樣和格式不變）：
-
-⸻
-
-2. 명령 호출 📞
-
-2.1. 새 사용자 등록 🆕
-
-SDK의 pay_sdk_php/ 디렉토리로 이동하여 $open_id 변수를 수정합니다.
-
-그런 다음 플랫폼에서 새 사용자를 등록하려면 php  example/create_user.php 를 실행합니다.
-
-이미 등록된 open_id로 등록을 시도하면 오류가 반환됩니다.
-
-2.2. 지갑 등록 💼
-
-SDK의 pay_sdk_php/ 디렉토리로 이동하여 $open_id 및 $chain_id 변수를 수정합니다.
-
-그런 다음 사용자의 플랫폼 지갑 등록을 완료하려면 php  example/create_wallet.php 를 실행합니다.
-
-2.3. 입금 주소 가져오기 📍
-
-SDK의 pay_sdk_php/ 디렉토리로 이동하여 $open_id 및 $chain_ids 변수를 수정합니다.
-
-그런 다음 php  example/get_wallet_addresses.php 를 실행합니다.
-
-2.4. 출금 💸
-
-SDK의 pay_sdk_php/ 디렉토리로 이동하여 $open_id, $token_id, $amount, $address, $callback_url(선택 사항), $sn(선택 사항) 변수를 수정합니다.
-
-그런 다음 php  example/withdraw.php 를 실행합니다.
+#### 카셔 주문 생성
+1. `example/new_order.php`에서 `outOrderNo`, `tokenId`, `quantity`, `notifyUrl`을 지정합니다.
+2. `php example/new_order.php`를 실행합니다.

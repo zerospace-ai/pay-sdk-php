@@ -1,164 +1,92 @@
-# 例 📝
+# コード例とツール
 
-このドキュメントは、CryptoPay Php SDKの使用例を提供します。Demoの実行、キーの生成、およびコールバックの処理を含みます。
+このドキュメントは 2 つの部分で構成されています。
+1. **シナリオベースのコード例:** 実際のコードでの API 呼び出しと検証の処理方法を示します。
+2. **CLI ツールガイド:** 素早いテストのために SDK に含まれているスクリプトの使用方法を説明します。
 
-## 1 SDKインスタンスオブジェクト 🛠️
+---
 
-### 1.1 必要な設定 ⚙️
+## 1. シナリオベースのコード例
 
-1. ビジネス名を登録し、`ApiKey` と `ApiSecret` を取得します；
+### 1.1 完全な API 呼び出しと応答の検証
 
-2. 独自の `RSA` キーペアを生成します；
-
-3. プラットフォームの `RSA` 公開鍵を準備します；
-
-### 1.2 署名オブジェクトの作成 🔏
-
-1. 設定ファイル `config.yaml` を追加します。
-
-```yaml
-# ビジネス情報を設定
-ApiKey: ""
-ApiSecret: ""
-# プラットフォーム公開鍵
-PlatformPubKey: ""
-# プラットフォームのブロック公開鍵
-PlatformRiskPubKey: ""
-# 独自の秘密鍵
-RsaPrivateKey: ""
-```
-
-2. 設定ファイルをロードし、APIオブジェクトを作成します。
+次のコードは、SDK を使用して「ユーザー作成」リクエストを構築し、HTTP リクエストを送信し、プラットフォームから返されたデータ署名のセキュリティ検証を実行する方法を示しています。
 
 ```php
+<?php
+require __DIR__.'/../vendor/autoload.php';
 
-	viper.SetConfigFile("config.yaml")
-	viper.AddConfigPath(".")
-	if err := viper.ReadInConfig(); err != nil {
-		panic(fmt.Sprintf("Failed to load config: %s", err))
-	}
-	apiObj := api.NewSDK(api.SDKConfig{
-		ApiKey:             viper.GetString("ApiKey"),
-		ApiSecret:          viper.GetString("ApiSecret"),
-		PlatformPubKey:     viper.GetString("PlatformPubKey"),
-		PlatformRiskPubKey: viper.GetString("PlatformRiskPubKey"),
-		RsaPrivateKey:      viper.GetString("RsaPrivateKey"),
-	})
+use Cryptopay\Chain\CryptoPay;
 
+function main() {
+    // 1. 設定の初期化
+    $config = [
+        'ApiKey' => 'your_api_key',
+        'ApiSecret' => 'your_api_secret',
+        'RsaPrivateKey' => 'your_rsa_private_key',
+        'PlatformPubKey' => 'platform_public_key',
+    ];
+
+    // 2. SDK インスタンスの作成
+    $cryptoPay = new CryptoPay($config);
+
+    // 3. API 呼び出し: ユーザー作成
+    $openId = 'php_user_' . time();
+    $result = $cryptoPay->createUser($openId);
+
+    if (!$result) {
+        echo "リクエストに失敗しました\n";
+        return;
+    }
+
+    // 4. 応答の解析と検証
+    $postData = json_decode($result, true);
+
+    if ($postData['code'] != 1) {
+        echo "応答に失敗しました。コード: " . $postData['code'] . "、メッセージ: " . $postData['msg'] . "\n";
+        return;
+    }
+
+    // プラットフォーム署名の検証
+    if ($cryptoPay->verifyRsaSignature($postData)) {
+        echo "✅ リクエストは成功し、検証されました。OpenId: " . $postData['data']['OpenId'] . "\n";
+    } else {
+        echo "❌ 署名の検証に失敗しました。\n";
+    }
+}
+
+main();
 ```
 
-### 1.3 リクエストデータの作成と署名 ✍️
 
-ユーザー作成を例にします。
+---
 
-```php
+## 2. CLI ツールガイド
 
-  // ....
-	openId := "HASH1756194148"
+SDK は、さまざまなインターフェースを素早くテストするためのコマンドラインスクリプトを提供しています。
 
-	reqBody, timestamp, sign, clientSign, err := apiObj.CreateUser(openId)
-	if err != nil {
-		logrus.Warnln("Error: ", err)
-		return
-	}
+### 2.1 依存関係のインストール
 
-```
+SDK のルートディレクトリで `composer install` コマンドを実行して、必要な依存関係をインストールします。
 
-```php
-    dataStr := rsa_utils.ComposeParams(mapData)
+### 2.2 インターフェースコマンドのテスト
 
-	timestamp = strconv.FormatInt(time.Now().UnixMilli(), 10)
-	sign = s.public function sign($data)(dataStr, timestamp)
+#### 新規ユーザー登録
+1. `example/create_user.php` の `OpenId` を変更します。
+2. `php example/create_user.php` を実行します。
 
-	jStr, err := json.Marshal(&req)
-	if err != nil {
-		return nil, timestamp, sign, clientSign, err
-	}
+#### ウォレット登録
+1. `example/create_wallet.php` で `UserOpenId` と `ChainID` を指定します。
+2. `php example/create_wallet.php` を実行します。
 
-	reqMapObj := rsa_utils.ToStringMap(jStr)
-	clientSign, err = s.public function encryption($data)(reqMapObj)
-```
+#### 入金アドレスの取得
+1. `example/get_wallet_addresses.php` で `UserOpenId` と照会する `ChainIDs` (例: "1,56") を指定します。
+2. `php example/get_wallet_addresses.php` を実行します。
 
-### 1.4 リクエストの入力と開始 🚀
+#### 出金の申請
+1. `example/withdraw.php` で `UserOpenId`, `TokenId`, `Amount`, `AddressTo`, `SafeCheckCode`, `CallBackUrl` を指定します。
+2. `php example/withdraw.php` を実行します。
 
-```php
-  // ....
-	
-	finalURL, err := url.JoinPath(api.DevNetEndpoint, api.PathCreateWallet)
-	if err != nil {
-		logrus.Warnln("Error: ", err)
-		return
-	}
-
-	resp, err := client.R().
-		SetHeader("Content-Type", "application/json").
-		SetBody(reqBody).
-		SetHeader("key", apiObj.GetApiKey()).
-		SetHeader("timestamp", timestamp).
-		SetHeader("sign", sign).
-		SetHeader("clientSign", clientSign).
-		Post(finalURL)
-
-```
-
-### 1.5 返却データの検証と解析 ✅
-
-```php
-
-	rspCommon := response_define.ResponseCommon{}
-	err = json.Unmarshal(body, &rspCommon)
-	if err != nil {
-		logrus.Warnln("Error: ", err)
-		return
-	}
-	logrus.Infoln("Response: ", rspCommon)
-
-	if rspCommon.Code != response_define.SUCCESS {
-		logrus.Warnln("Response fail Code", rspCommon.Code, "Msg", rspCommon.Msg)
-		return
-	}
-
-	rspCreateUser := response_define.ResponseCreateUser{}
-	err = json.Unmarshal(body, &rspCreateUser)
-	if err != nil {
-		logrus.Warnln("Error: ", err)
-		return
-	}
-	logrus.Infoln("ResponseCreateUser: ", rspCreateUser)
-
-	mapObj := rsa_utils.ToStringMap(body)
-	err = apiObj.VerifyRSAsignature(mapObj, rspCreateUser.Sign)
-	if err != nil {
-		logrus.Warnln("Error: ", err)
-		return
-	}
-
-```
-
-1. コマンド呼び出し 📞
-
-2.1. 新規ユーザー登録 🆕
-
-SDK の pay_sdk_php/ ディレクトリに移動し、$open_id 変数を修正します。
-
-その後、プラットフォーム上で新しいユーザーを登録するために php  example/create_user.php を実行します。
-
-既に登録されている open_id を登録しようとすると、エラーが返されます。
-
-2.2. ウォレット登録 💼
-
-SDK の pay_sdk_php/ ディレクトリに移動し、$open_id と $chain_id 変数を修正します。
-
-その後、ユーザーのプラットフォーム上でのウォレット登録を完了するために php  example/create_wallet.php を実行します。
-
-2.3. 入金アドレスの取得 📍
-
-SDK の pay_sdk_php/ ディレクトリに移動し、$open_id と $chain_ids 変数を修正します。
-
-その後、php  example/get_wallet_addresses.php を実行します。
-
-2.4. 出金 💸
-
-SDK の pay_sdk_php/ ディレクトリに移動し、$open_id, $token_id, $amount, $address, $callback_url(オプション), $sn(オプション) 変数を修正します。
-
-その後、php  example/withdraw.php を実行します。
+#### レジ注文の作成
+1. `example/new_order.php` で `outOrderNo`, `tokenId`, `quantity`, `notifyUrl` を指定します。
+2. `php example/new_order.php` を実行します。

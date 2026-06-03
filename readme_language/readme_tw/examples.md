@@ -1,164 +1,92 @@
-# 範例 📝
+# 示例代碼與工具
 
-本文件提供 CryptoPay Php SDK 的使用範例，包括 Demo 運行、金鑰生成和回調處理。
+本文檔分為兩部分：
+1. **場景化代碼示例：** 演示在實際代碼中如何處理 API 的調用與驗證。
+2. **命令行工具指南：** 介紹如何使用 SDK 附帶的腳本進行快速測試。
 
-## 1 SDK 實例物件 🛠️
+---
 
-### 1.1 所需配置 ⚙️
+## 1. 場景化代碼示例
 
-1. 註冊您的業務名稱並獲取 `ApiKey` 和 `ApiSecret`；
+### 1.1 完整的 API 調用與響應驗證
 
-2. 生成您自己的 `RSA` 金鑰對；
-
-3. 準備平台的 `RSA` 公鑰；
-
-### 1.2 創建簽名物件 🔏
-
-1. 添加配置文件 `config.yaml`。
-
-```yaml
-# 配置業務信息
-ApiKey: ""
-ApiSecret: ""
-# 平台公鑰
-PlatformPubKey: ""
-# 用於封鎖平台的公鑰
-PlatformRiskPubKey: ""
-# 您自己的私鑰
-RsaPrivateKey: ""
-```
-
-2. 加載配置文件並創建 API 物件。
+以下代碼展示了如何利用 SDK 構建一個“創建用戶”請求，發送 HTTP 請求，並對平台返回的數據簽名進行安全驗證。
 
 ```php
+<?php
+require __DIR__.'/../vendor/autoload.php';
 
-	viper.SetConfigFile("config.yaml")
-	viper.AddConfigPath(".")
-	if err := viper.ReadInConfig(); err != nil {
-		panic(fmt.Sprintf("Failed to load config: %s", err))
-	}
-	apiObj := api.NewSDK(api.SDKConfig{
-		ApiKey:             viper.GetString("ApiKey"),
-		ApiSecret:          viper.GetString("ApiSecret"),
-		PlatformPubKey:     viper.GetString("PlatformPubKey"),
-		PlatformRiskPubKey: viper.GetString("PlatformRiskPubKey"),
-		RsaPrivateKey:      viper.GetString("RsaPrivateKey"),
-	})
+use Cryptopay\Chain\CryptoPay;
 
+function main() {
+    // 1. Initialize configuration
+    $config = [
+        'ApiKey' => 'your_api_key',
+        'ApiSecret' => 'your_api_secret',
+        'RsaPrivateKey' => 'your_rsa_private_key',
+        'PlatformPubKey' => 'platform_public_key',
+    ];
+
+    // 2. Create SDK instance
+    $cryptoPay = new CryptoPay($config);
+
+    // 3. Call API: Create User
+    $openId = 'php_user_' . time();
+    $result = $cryptoPay->createUser($openId);
+
+    if (!$result) {
+        echo "Request failed\n";
+        return;
+    }
+
+    // 4. Parse and verify response
+    $postData = json_decode($result, true);
+
+    if ($postData['code'] != 1) {
+        echo "Response failed! Code: " . $postData['code'] . ", Msg: " . $postData['msg'] . "\n";
+        return;
+    }
+
+    // Verify platform signature
+    if ($cryptoPay->verifyRsaSignature($postData)) {
+        echo "✅ Request successful and verified! OpenId: " . $postData['data']['OpenId'] . "\n";
+    } else {
+        echo "❌ Signature verification failed!\n";
+    }
+}
+
+main();
 ```
 
-### 1.3 創建並簽名請求數據。 ✍️
 
-讓我們以用戶創建為例。
+---
 
-```php
+## 2. 命令行工具使用指南
 
-  // ....
-	openId := "HASH1756194148"
+SDK 提供了快速測試各接口的命令行腳本。
 
-	reqBody, timestamp, sign, clientSign, err := apiObj.CreateUser(openId)
-	if err != nil {
-		logrus.Warnln("Error: ", err)
-		return
-	}
+### 2.1 安裝依賴
 
-```
+在 SDK 根目錄下執行 `composer install` 命令安裝必要依賴。
 
-```php
-    dataStr := rsa_utils.ComposeParams(mapData)
+### 2.2 測試各接口命令
 
-	timestamp = strconv.FormatInt(time.Now().UnixMilli(), 10)
-	sign = s.public function sign($data)(dataStr, timestamp)
+#### 註冊新用戶
+1. 在 `example/create_user.php` 中修改 `OpenId`。
+2. 運行 `php example/create_user.php`。
 
-	jStr, err := json.Marshal(&req)
-	if err != nil {
-		return nil, timestamp, sign, clientSign, err
-	}
+#### 錢包註冊
+1. 在 `example/create_wallet.php` 中指定 `UserOpenId` 和 `ChainID`。
+2. 運行 `php example/create_wallet.php`。
 
-	reqMapObj := rsa_utils.ToStringMap(jStr)
-	clientSign, err = s.public function encryption($data)(reqMapObj)
-```
+#### 獲取充值地址
+1. 在 `example/get_wallet_addresses.php` 中指定 `UserOpenId` 和需要查詢的 `ChainIDs` (例如 "1,56")。
+2. 運行 `php example/get_wallet_addresses.php`。
 
-### 1.4 填充並發起請求 🚀
+#### 申請提現
+1. 在 `example/withdraw.php` 中指定 `UserOpenId`, `TokenId`, `Amount`, `AddressTo`, `SafeCheckCode`, `CallBackUrl`。
+2. 運行 `php example/withdraw.php`。
 
-```php
-  // ....
-	
-	finalURL, err := url.JoinPath(api.DevNetEndpoint, api.PathCreateWallet)
-	if err != nil {
-		logrus.Warnln("Error: ", err)
-		return
-	}
-
-	resp, err := client.R().
-		SetHeader("Content-Type", "application/json").
-		SetBody(reqBody).
-		SetHeader("key", apiObj.GetApiKey()).
-		SetHeader("timestamp", timestamp).
-		SetHeader("sign", sign).
-		SetHeader("clientSign", clientSign).
-		Post(finalURL)
-
-```
-
-### 1.5 驗證解析返回數據 ✅
-
-```php
-
-	rspCommon := response_define.ResponseCommon{}
-	err = json.Unmarshal(body, &rspCommon)
-	if err != nil {
-		logrus.Warnln("Error: ", err)
-		return
-	}
-	logrus.Infoln("Response: ", rspCommon)
-
-	if rspCommon.Code != response_define.SUCCESS {
-		logrus.Warnln("Response fail Code", rspCommon.Code, "Msg", rspCommon.Msg)
-		return
-	}
-
-	rspCreateUser := response_define.ResponseCreateUser{}
-	err = json.Unmarshal(body, &rspCreateUser)
-	if err != nil {
-		logrus.Warnln("Error: ", err)
-		return
-	}
-	logrus.Infoln("ResponseCreateUser: ", rspCreateUser)
-
-	mapObj := rsa_utils.ToStringMap(body)
-	err = apiObj.VerifyRSAsignature(mapObj, rspCreateUser.Sign)
-	if err != nil {
-		logrus.Warnln("Error: ", err)
-		return
-	}
-
-```
-
-1. 呼叫命令 📞
-
-2.1. 註冊新使用者 🆕
-
-進入 SDK 的 pay_sdk_php/ 目錄，修改 $open_id 變數。
-
-然後執行 php  example/create_user.php 來在平台上註冊一個新使用者。
-
-如果嘗試註冊一個已經註冊過的 open_id，將會返回錯誤。
-
-2.2. 錢包註冊 💼
-
-進入 SDK 的 pay_sdk_php/ 目錄，修改 $open_id 和 $chain_id 變數。
-
-然後執行 php  example/create_wallet.php 來完成使用者在平台上的錢包註冊。
-
-2.3. 獲取充值地址 📍
-
-進入 SDK 的 pay_sdk_php/ 目錄，修改 $open_id 和 $chain_ids 變數。
-
-然後執行 php  example/get_wallet_addresses.php
-
-2.4. 提現 💸
-
-進入 SDK 的 pay_sdk_php/ 目錄，修改 $open_id, $token_id, $amount, $address, $callback_url(可選), $sn(可選) 變數。
-
-然後執行 php  example/withdraw.php
+#### 創建收銀台訂單
+1. 在 `example/new_order.php` 中指定 `outOrderNo`, `tokenId`, `quantity`, `notifyUrl`。
+2. 運行 `php example/new_order.php`。
