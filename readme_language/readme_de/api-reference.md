@@ -13,6 +13,7 @@ Dieses Dokument enthält detaillierte Informationen zu allen API-Endpunkten des 
 7. [Ein- und Auszahlungs-Rückrufbenachrichtigung (Webhook)](#7-ein--und-auszahlungs-rückrufbenachrichtigung-webhook)
 8. [Kassierer-Auftrag erstellen (new_order)](#8-kassierer-auftrag-erstellen-new_order)
 9. [Zahlungserfolgs-Callback für Kassierer-Auftrag (Webhook)](#9-zahlungserfolgs-callback-für-kassierer-auftrag-webhook)
+10. [Wallet-Guthaben abfragen (getWalletBalance)](#10-wallet-guthaben-abfragen-getwalletbalance)
 
 ---
 
@@ -343,3 +344,56 @@ Wenn ein Benutzer eine Zahlung über den Kassierer abschließt, sendet das Syste
 
 ### Erwartete Antwort vom Händler
 Wenn erfolgreich empfangen, geben Sie bitte einen JSON-Antwortkörper zurück, der `{"code": "1", "message": "success"}` enthält.
+
+---
+
+## 10. Wallet-Guthaben abfragen (getWalletBalance)
+
+### API-Beschreibung
+Fragt das Token- oder Coin-Guthaben für eine angegebene Wallet-Adresse in einem bestimmten Blockchain-Netzwerk ab.
+
+### HTTP-Anfrage
+* **URL:** `https://sandbox-api.privatex.io/sdk/wallet/balance`
+* **Methode:** `POST`
+
+### Anfrageparameter
+| Parametername | Erforderlich | Typ | Beschreibung |
+| :--- | :--- | :--- | :--- |
+| `address` | Ja | string | Wallet-Adresse |
+| `contractAddress` | Ja | string | Token-Vertragsadresse oder Token-Symbol (z. B. `"XRP"`, `"USDT"`) |
+| `chainId` | Ja | integer | Chain-ID (z. B. `5` für XRP, `1` für Ethereum, `56` für BNB Chain) |
+
+### Antwortparameter
+*(Enthält globale Informationen)*
+| Parametername | Typ | Beschreibung |
+| :--- | :--- | :--- |
+| `code` | integer | Globaler Statuscode (`1` für Erfolg) |
+| `msg` | string | Statusbeschreibung |
+| `data` | string | Token- / Coin-Guthabenbetrag (in kleinsten Einheiten) |
+| `timestamp` | string | Antwortzeitstempel (Millisekunden) |
+| `sign` | string | Plattform-Datensignatur |
+
+### Codebeispiel (cURL)
+```bash
+curl --location --request POST 'https://sandbox-api.privatex.io/sdk/wallet/balance' \
+--header 'key: your_api_key' \
+--header 'sign: your_md5_sign' \
+--header 'Content-Type: application/json' \
+--header 'timestamp: 1725076567682' \
+--data-raw '{
+  "address":"rXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+  "contractAddress":"XRP",
+  "chainId":5
+}'
+```
+
+### Antwortbeispiel
+```json
+{
+  "sign" : "",
+  "timestamp" : "1725432397796",
+  "data" : "1979984",
+  "msg" : "ok",
+  "code" : 1
+}
+```

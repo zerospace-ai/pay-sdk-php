@@ -13,6 +13,7 @@ This document details all API endpoints of the CryptoPay PHP SDK, including requ
 7. [Deposit and Withdrawal Callback Notification (Webhook)](#7-deposit-and-withdrawal-callback-notification-webhook)
 8. [Create Cashier Order (new_order)](#8-create-cashier-order-new_order)
 9. [Cashier Order Payment Success Callback (Webhook)](#9-cashier-order-payment-success-callback-webhook)
+10. [Query Wallet Balance (getWalletBalance)](#10-query-wallet-balance-getwalletbalance)
 
 ---
 
@@ -343,3 +344,57 @@ When a user completes a payment through the cashier, the system will send an asy
 
 ### Expected Response from Merchant
 If received successfully, please return a JSON response body containing `{"code": "1", "message": "success"}`.
+
+---
+
+## 10. Query Wallet Balance (getWalletBalance)
+
+### API Description
+Query the token or coin balance for a specified wallet address on a given blockchain network.
+
+### HTTP Request
+* **URL:** `https://sandbox-api.privatex.io/sdk/wallet/balance`
+* **Method:** `POST`
+
+### Request Parameters
+| Parameter Name | Required | Type | Description |
+| :--- | :--- | :--- | :--- |
+| `address` | Yes | string | Wallet address |
+| `contractAddress` | Yes | string | Contract address or token symbol (e.g., `"XRP"`, `"USDT"`) |
+| `chainId` | Yes | integer | Chain ID (e.g., `5` for XRP, `1` for Ethereum, `56` for BNB Chain) |
+
+### Response Parameters
+*(Includes Global Information)*
+| Parameter Name | Type | Description |
+| :--- | :--- | :--- |
+| `code` | integer | Global status code (`1` for success) |
+| `msg` | string | Status description |
+| `data` | string | Token / coin balance amount (in minimal units) |
+| `timestamp` | string | Response timestamp (milliseconds) |
+| `sign` | string | Platform signature |
+
+### Example Code (cURL)
+```bash
+curl --location --request POST 'https://sandbox-api.privatex.io/sdk/wallet/balance' \
+--header 'key: your_api_key' \
+--header 'sign: your_md5_sign' \
+--header 'Content-Type: application/json' \
+--header 'timestamp: 1725076567682' \
+--data-raw '{
+  "address":"rXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+  "contractAddress":"XRP",
+  "chainId":5
+}'
+```
+
+### Response Example
+```json
+{
+  "sign" : "",
+  "timestamp" : "1725432397796",
+  "data" : "1979984",
+  "msg" : "ok",
+  "code" : 1
+}
+```
+

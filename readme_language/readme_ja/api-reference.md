@@ -13,6 +13,7 @@
 7. [入金および出金コールバック通知 (Webhook)](#7-入金および出金コールバック通知-webhook)
 8. [レジ注文の作成 (new_order)](#8-レジ注文の作成-new_order)
 9. [レジ注文支払い成功コールバック (Webhook)](#9-レジ注文支払い成功コールバック-webhook)
+10. [ウォレット残高照会 (getWalletBalance)](#10-ウォレット残高照会-getwalletbalance)
 
 ---
 
@@ -343,3 +344,56 @@ curl --location 'https://sandbox-api.privatex.io/sdk/api/v2/exchange/cashier/new
 
 ### 加盟店からの予想される応答
 正常に受信した場合は、`{"code": "1", "message": "success"}` を含む JSON 応答本文を返してください。
+
+---
+
+## 10. ウォレット残高照会 (getWalletBalance)
+
+### API の説明
+指定されたブロックチェーンネットワーク上の特定のウォレットアドレスのトークンまたはネイティブコインの残高を照会します。
+
+### HTTP リクエスト
+* **URL:** `https://sandbox-api.privatex.io/sdk/wallet/balance`
+* **メソッド:** `POST`
+
+### リクエストパラメーター
+| パラメーター名 | 必須 | タイプ | 説明 |
+| :--- | :--- | :--- | :--- |
+| `address` | はい | string | ウォレットアドレス |
+| `contractAddress` | はい | string | コントラクトアドレスまたはトークンシンボル（例: `"XRP"`、`"USDT"`） |
+| `chainId` | はい | integer | チェーン ID（例: XRP の場合は `5`、Ethereum の場合は `1`、BNB Chain の場合は `56`） |
+
+### 応答パラメーター
+*(グローバル情報を含む)*
+| パラメーター名 | タイプ | 説明 |
+| :--- | :--- | :--- |
+| `code` | integer | グローバルステータスコード（`1` は成功） |
+| `msg` | string | ステータスの説明 |
+| `data` | string | トークン/コイン残高（最小単位文字列） |
+| `timestamp` | string | 応答タイムスタンプ（ミリ秒） |
+| `sign` | string | プラットフォーム署名データ |
+
+### コード例 (cURL)
+```bash
+curl --location --request POST 'https://sandbox-api.privatex.io/sdk/wallet/balance' \
+--header 'key: your_api_key' \
+--header 'sign: your_md5_sign' \
+--header 'Content-Type: application/json' \
+--header 'timestamp: 1725076567682' \
+--data-raw '{
+  "address":"rXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+  "contractAddress":"XRP",
+  "chainId":5
+}'
+```
+
+### 応答例
+```json
+{
+  "sign" : "",
+  "timestamp" : "1725432397796",
+  "data" : "1979984",
+  "msg" : "ok",
+  "code" : 1
+}
+```

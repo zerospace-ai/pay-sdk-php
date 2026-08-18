@@ -90,3 +90,7 @@ SDK 루트 디렉토리에서 `composer install` 명령을 실행하여 필요�
 #### 카셔 주문 생성
 1. `example/new_order.php`에서 `outOrderNo`, `tokenId`, `quantity`, `notifyUrl`을 지정합니다.
 2. `php example/new_order.php`를 실행합니다.
+
+#### 지갑 잔액 조회
+1. `example/wallet_balance.php`에서 `address`, `contract_address`, `chain_id`를 지정합니다.
+2. `php example/wallet_balance.php`를 실행합니다.

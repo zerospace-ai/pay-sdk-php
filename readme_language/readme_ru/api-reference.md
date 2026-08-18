@@ -13,6 +13,7 @@
 7. [Уведомление об обратном вызове при пополнении и выводе (Webhook)](#7-уведомление-об-обратном-вызове-при-пополнении-и-выводе-webhook)
 8. [Создать ордер кассира (new_order)](#8-создать-ордер-кассира-new_order)
 9. [Обратный вызов об успешной оплате ордера кассира (Webhook)](#9-обратный-вызов-об-успешной-оплате-ордера-кассира-webhook)
+10. [Запрос баланса кошелька (getWalletBalance)](#10-запрос-баланса-кошелька-getwalletbalance)
 
 ---
 
@@ -343,3 +344,56 @@ curl --location 'https://sandbox-api.privatex.io/sdk/api/v2/exchange/cashier/new
 
 ### Ожидаемый ответ от продавца
 При успешном получении верните тело ответа JSON, содержащее `{"code": "1", "message": "success"}`.
+
+---
+
+## 10. Запрос баланса кошелька (getWalletBalance)
+
+### Описание API
+Запрашивает баланс токенов или монет для указанного адреса кошелька в определенной сети блокчейна.
+
+### HTTP-запрос
+* **URL:** `https://sandbox-api.privatex.io/sdk/wallet/balance`
+* **Метод:** `POST`
+
+### Параметры запроса
+| Имя параметра | Обязательно | Тип | Описание |
+| :--- | :--- | :--- | :--- |
+| `address` | Да | string | Адрес кошелька |
+| `contractAddress` | Да | string | Адрес смарт-контракта или символ токена (например, `"XRP"`, `"USDT"`) |
+| `chainId` | Да | integer | ID блокчейн-сети (например, `5` для XRP, `1` для Ethereum, `56` для BNB Chain) |
+
+### Параметры ответа
+*(Включает глобальную информацию)*
+| Имя параметра | Тип | Описание |
+| :--- | :--- | :--- |
+| `code` | integer | Глобальный код состояния (`1` означает успех) |
+| `msg` | string | Описание состояния |
+| `data` | string | Баланс токенов / монет (в минимальных неделимых единицах) |
+| `timestamp` | string | Метка времени ответа (в миллисекундах) |
+| `sign` | string | Подпись данных платформы |
+
+### Пример кода (cURL)
+```bash
+curl --location --request POST 'https://sandbox-api.privatex.io/sdk/wallet/balance' \
+--header 'key: your_api_key' \
+--header 'sign: your_md5_sign' \
+--header 'Content-Type: application/json' \
+--header 'timestamp: 1725076567682' \
+--data-raw '{
+  "address":"rXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+  "contractAddress":"XRP",
+  "chainId":5
+}'
+```
+
+### Пример ответа
+```json
+{
+  "sign" : "",
+  "timestamp" : "1725432397796",
+  "data" : "1979984",
+  "msg" : "ok",
+  "code" : 1
+}
+```

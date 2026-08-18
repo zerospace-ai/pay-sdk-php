@@ -13,6 +13,7 @@ Bu belge, istek parametreleri, dönüş parametreleri ve örnekler dahil olmak �
 7. [Para Yatırma ve Para Çekme Geri Çağırma Bildirimi (Webhook)](#7-yatırma-ve-para-çekme-geri-çağırma-bildirimi-webhook)
 8. [Kasiyer Siparişi Oluştur (new_order)](#8-kasiyer-siparişi-oluştur-new_order)
 9. [Kasiyer Siparişi Ödeme Başarısı Geri Çağırma (Webhook)](#9-kasiyer-siparişi-ödeme-başarısı-geri-çağırma-webhook)
+10. [Cüzdan Bakiyesini Sorgula (getWalletBalance)](#10-cüzdan-bakiyesini-sorgula-getwalletbalance)
 
 ---
 
@@ -343,3 +344,56 @@ Bir kullanıcı kasiyer aracılığıyla ödemeyi tamamladığında sistem, tüc
 
 ### Tüccardan Beklenen Yanıt
 Başarıyla alınırsa, lütfen `{"code": "1", "message": "success"}` içeren bir JSON yanıt gövdesi döndürün.
+
+---
+
+## 10. Cüzdan Bakiyesini Sorgula (getWalletBalance)
+
+### API Açıklaması
+Belirtilen bir blokzincir ağındaki belirli bir cüzdan adresi için token veya yerel para birimi bakiyesini sorgular.
+
+### HTTP İsteği
+* **URL:** `https://sandbox-api.privatex.io/sdk/wallet/balance`
+* **Yöntem:** `POST`
+
+### İstek Parametreleri
+| Parametre Adı | Zorunlu | Tür | Açıklama |
+| :--- | :--- | :--- | :--- |
+| `address` | Evet | string | Cüzdan adresi |
+| `contractAddress` | Evet | string | Token sözleşme adresi veya token sembolü (örn. `"XRP"`, `"USDT"`) |
+| `chainId` | Evet | integer | Zincir Kimliği (örn. XRP için `5`, Ethereum için `1`, BNB Chain için `56`) |
+
+### Yanıt Parametreleri
+*(Genel Bilgileri İçerir)*
+| Parametre Adı | Tür | Açıklama |
+| :--- | :--- | :--- |
+| `code` | integer | Genel durum kodu (`1` başarıyı gösterir) |
+| `msg` | string | Durum açıklaması |
+| `data` | string | Token / coin bakiye miktarı (en küçük birim cinsinden) |
+| `timestamp` | string | Yanıt zaman damgası (milisaniye) |
+| `sign` | string | Platform veri imzası |
+
+### Örnek Kod (cURL)
+```bash
+curl --location --request POST 'https://sandbox-api.privatex.io/sdk/wallet/balance' \
+--header 'key: your_api_key' \
+--header 'sign: your_md5_sign' \
+--header 'Content-Type: application/json' \
+--header 'timestamp: 1725076567682' \
+--data-raw '{
+  "address":"rXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+  "contractAddress":"XRP",
+  "chainId":5
+}'
+```
+
+### Yanıt Örneği
+```json
+{
+  "sign" : "",
+  "timestamp" : "1725432397796",
+  "data" : "1979984",
+  "msg" : "ok",
+  "code" : 1
+}
+```

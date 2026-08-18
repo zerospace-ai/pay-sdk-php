@@ -12,23 +12,48 @@ class Client
     {
         $this->config = $config;
 
-        $this->config['PlatformPubKey'] = isset($this->config['PlatformPubKey']) ? $this->handelPublicKey($this->config['PlatformPubKey']) : '';
-        $this->config['RsaPrivateKey'] = isset($this->config['RsaPrivateKey']) ? $this->handelPrivateKey($this->config['RsaPrivateKey']) : '';
-        $this->config['PlatformRiskPubKey'] = isset($this->config['PlatformRiskPubKey']) ? $this->handelPublicKey($this->config['PlatformRiskPubKey']) : '';
+        $this->config['PlatformPubKey'] = isset($this->config['PlatformPubKey']) ? $this->handlePublicKey($this->config['PlatformPubKey']) : '';
+        $this->config['RsaPrivateKey'] = isset($this->config['RsaPrivateKey']) ? $this->handlePrivateKey($this->config['RsaPrivateKey']) : '';
+        $this->config['PlatformRiskPubKey'] = isset($this->config['PlatformRiskPubKey']) ? $this->handlePublicKey($this->config['PlatformRiskPubKey']) : '';
 
         $this->timestamp = $this->getMillisecond();
     }
 
-    public function handelPublicKey($public_key)
+    public function handlePublicKey($public_key)
     {
+        if (empty($public_key)) {
+            return '';
+        }
+        $public_key = trim($public_key);
+        if (strpos($public_key, '-----BEGIN') !== false) {
+            return $public_key;
+        }
         $pem = chunk_split($public_key, 64, "\n");
         return "-----BEGIN PUBLIC KEY-----\n" . $pem . "-----END PUBLIC KEY-----\n";
     }
 
-    public function handelPrivateKey($private_key)
+    public function handlePrivateKey($private_key)
     {
+        if (empty($private_key)) {
+            return '';
+        }
+        $private_key = trim($private_key);
+        if (strpos($private_key, '-----BEGIN') !== false) {
+            return $private_key;
+        }
         $pem = chunk_split($private_key, 64, "\n");
         return "-----BEGIN PRIVATE KEY-----\n" . $pem . "-----END PRIVATE KEY-----\n";
+    }
+
+    // Backward compatibility aliases
+    public function handelPublicKey($public_key)
+    {
+        return $this->handlePublicKey($public_key);
+    }
+
+    public function handelPrivateKey($private_key)
+    {
+        return $this->handlePrivateKey($private_key);
     }
 
     /**
@@ -187,7 +212,7 @@ class Client
         if (curl_errno($curl)) {
             print curl_error($curl);
         }
-        curl_close($curl);
+        // curl_close($curl); // Deprecated in PHP 8.5+, automatically freed by GC since PHP 8.0
 
         return $result;
     }

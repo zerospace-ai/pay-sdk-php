@@ -13,6 +13,7 @@
 7. [充值和提現回調通知 (Webhook)](#7-充值和提現回調通知-webhook)
 8. [創建收銀台訂單 (new_order)](#8-創建收銀台訂單-new_order)
 9. [收銀台訂單支付成功回調 (Webhook)](#9-收銀台訂單支付成功回調-webhook)
+10. [查詢錢包餘額 (getWalletBalance)](#10-查詢錢包餘額-getwalletbalance)
 
 ---
 
@@ -343,3 +344,56 @@ curl --location 'https://sandbox-api.privatex.io/sdk/api/v2/exchange/cashier/new
 
 ### 業務端（商戶）需響應的內容
 接收成功請返回包含 `{"code": "1", "message": "success"}` 的 JSON 響應體。
+
+---
+
+## 10. 查詢錢包餘額 (getWalletBalance)
+
+### 接口說明
+查詢指定區塊鏈網絡上某個錢包地址的代幣或主幣餘額。
+
+### HTTP 請求
+* **URL:** `https://sandbox-api.privatex.io/sdk/wallet/balance`
+* **方法:** `POST`
+
+### 請求參數
+| 參數名稱 | 必填 | 類型 | 說明 |
+| :--- | :--- | :--- | :--- |
+| `address` | 是 | string | 錢包地址 |
+| `contractAddress` | 是 | string | 合約地址或代幣標識（如 `"XRP"`、`"USDT"`） |
+| `chainId` | 是 | integer | 鏈 ID（如 `5` 為 XRP，`1` 為 Ethereum，`56` 為 BNB Chain） |
+
+### 響應參數
+*(包含公共信息)*
+| 參數名稱 | 類型 | 說明 |
+| :--- | :--- | :--- |
+| `code` | integer | 全局狀態碼（`1` 表示成功） |
+| `msg` | string | 狀態描述信息 |
+| `data` | string | 餘額數量（最小單位字符串） |
+| `timestamp` | string | 響應時間戳（毫秒） |
+| `sign` | string | 平台數據簽名 |
+
+### 示例代碼 (cURL)
+```bash
+curl --location --request POST 'https://sandbox-api.privatex.io/sdk/wallet/balance' \
+--header 'key: your_api_key' \
+--header 'sign: your_md5_sign' \
+--header 'Content-Type: application/json' \
+--header 'timestamp: 1725076567682' \
+--data-raw '{
+  "address":"rXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+  "contractAddress":"XRP",
+  "chainId":5
+}'
+```
+
+### 響應示例
+```json
+{
+  "sign" : "",
+  "timestamp" : "1725432397796",
+  "data" : "1979984",
+  "msg" : "ok",
+  "code" : 1
+}
+```

@@ -108,4 +108,30 @@ class CryptoPay
         return $this->client->post("{$this->baseUrl}api/v2/exchange/cashier/newOrder", $data);
     }
 
+    /**
+     * @param $address
+     * @param $contract_address
+     * @param $chain_id
+     * @return bool|string
+     */
+    public function getWalletBalance($address, $contract_address, $chain_id){
+        $data = [
+            'address' => $address,
+            'contractAddress' => $contract_address,
+            'chainId' => $chain_id,
+        ];
+
+        return $this->client->post("{$this->baseUrl}/wallet/balance", $data);
+    }
+
+    /**
+     * @param $address
+     * @param $contract_address
+     * @param $chain_id
+     * @return bool|string
+     */
+    public function walletBalance($address, $contract_address, $chain_id){
+        return $this->getWalletBalance($address, $contract_address, $chain_id);
+    }
+
 }

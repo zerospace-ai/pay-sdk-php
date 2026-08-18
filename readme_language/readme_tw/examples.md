@@ -90,3 +90,7 @@ SDK 提供了快速測試各接口的命令行腳本。
 #### 創建收銀台訂單
 1. 在 `example/new_order.php` 中指定 `outOrderNo`, `tokenId`, `quantity`, `notifyUrl`。
 2. 運行 `php example/new_order.php`。
+
+#### 查詢錢包餘額
+1. 在 `example/wallet_balance.php` 中指定 `address`, `contract_address`, `chain_id`。
+2. 運行 `php example/wallet_balance.php`。

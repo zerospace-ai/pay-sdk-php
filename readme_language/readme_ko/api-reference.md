@@ -13,6 +13,7 @@
 7. [입금 및 출금 콜백 알림 (Webhook)](#7-입금-및-출금-콜백-알림-webhook)
 8. [카셔 주문 생성 (new_order)](#8-카셔-주문-생성-new_order)
 9. [카셔 주문 결제 성공 콜백 (Webhook)](#9-카셔-주문-결제-성공-콜백-webhook)
+10. [지갑 잔액 조회 (getWalletBalance)](#10-지갑-잔액-조회-getwalletbalance)
 
 ---
 
@@ -343,3 +344,56 @@ curl --location 'https://sandbox-api.privatex.io/sdk/api/v2/exchange/cashier/new
 
 ### 가맹점의 예상 응답
 성공적으로 수신되면 `{"code": "1", "message": "success"}`가 포함된 JSON 응답 본문을 반환하십시오.
+
+---
+
+## 10. 지갑 잔액 조회 (getWalletBalance)
+
+### API 설명
+지정된 블록체인 네트워크에서 특정 지갑 주소의 토큰 또는 네이티브 코인 잔액을 조회합니다.
+
+### HTTP 요청
+* **URL:** `https://sandbox-api.privatex.io/sdk/wallet/balance`
+* **메서드:** `POST`
+
+### 요청 매개변수
+| 매개변수 이름 | 필수 여부 | 유형 | 설명 |
+| :--- | :--- | :--- | :--- |
+| `address` | 예 | string | 지갑 주소 |
+| `contractAddress` | 예 | string | 토큰 계약 주소 또는 토큰 심볼 (예: `"XRP"`, `"USDT"`) |
+| `chainId` | 예 | integer | 체인 ID (예: XRP의 경우 `5`, Ethereum의 경우 `1`, BNB Chain의 경우 `56`) |
+
+### 응답 매개변수
+*(글로벌 정보 포함)*
+| 매개변수 이름 | 유형 | 설명 |
+| :--- | :--- | :--- |
+| `code` | integer | 글로벌 상태 코드 (`1`은 성공) |
+| `msg` | string | 상태 설명 |
+| `data` | string | 토큰/코인 잔액 수량 (최소 단위 문자열) |
+| `timestamp` | string | 응답 타임스탬프 (밀리초) |
+| `sign` | string | 플랫폼 데이터 서명 |
+
+### 예제 코드 (cURL)
+```bash
+curl --location --request POST 'https://sandbox-api.privatex.io/sdk/wallet/balance' \
+--header 'key: your_api_key' \
+--header 'sign: your_md5_sign' \
+--header 'Content-Type: application/json' \
+--header 'timestamp: 1725076567682' \
+--data-raw '{
+  "address":"rXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+  "contractAddress":"XRP",
+  "chainId":5
+}'
+```
+
+### 응답 예제
+```json
+{
+  "sign" : "",
+  "timestamp" : "1725432397796",
+  "data" : "1979984",
+  "msg" : "ok",
+  "code" : 1
+}
+```

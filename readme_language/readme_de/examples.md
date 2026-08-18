@@ -90,3 +90,7 @@ Führen Sie den Befehl `composer install` im SDK-Stammverzeichnis aus, um die er
 #### Kassierer-Auftrag erstellen
 1. Geben Sie `outOrderNo`, `tokenId`, `quantity` und `notifyUrl` in `example/new_order.php` an.
 2. Führen Sie `php example/new_order.php` aus.
+
+#### Wallet-Guthaben abfragen
+1. Geben Sie `address`, `contract_address` und `chain_id` in `example/wallet_balance.php` an.
+2. Führen Sie `php example/wallet_balance.php` aus.

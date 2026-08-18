@@ -90,3 +90,7 @@ Gerekli bağımlılıkları yüklemek için SDK kök dizininde `composer install
 #### Kasiyer Siparişi Oluştur
 1. `example/new_order.php` dosyasında `outOrderNo`, `tokenId`, `quantity` ve `notifyUrl` değerlerini belirtin.
 2. `php example/new_order.php` komutunu çalıştırın.
+
+#### Cüzdan Bakiyesini Sorgula
+1. `example/wallet_balance.php` dosyasında `address`, `contract_address` ve `chain_id` değerlerini belirtin.
+2. `php example/wallet_balance.php` komutunu çalıştırın.

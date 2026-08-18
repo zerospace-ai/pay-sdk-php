@@ -90,3 +90,7 @@ Execute the `composer install` command in the SDK root directory to install the 
 #### Create Cashier Order
 1. Specify `outOrderNo`, `tokenId`, `quantity`, and `notifyUrl` in `example/new_order.php`.
 2. Run `php example/new_order.php`.
+
+#### Query Wallet Balance
+1. Specify `address`, `contract_address`, and `chain_id` in `example/wallet_balance.php`.
+2. Run `php example/wallet_balance.php`.

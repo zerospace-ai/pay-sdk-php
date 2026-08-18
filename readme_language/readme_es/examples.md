@@ -90,3 +90,7 @@ Ejecute el comando `composer install` en el directorio raíz del SDK para instal
 #### Crear Orden de Cajero
 1. Especifique `outOrderNo`, `tokenId`, `quantity` y `notifyUrl` en `example/new_order.php`.
 2. Ejecute `php example/new_order.php`.
+
+#### Consultar Saldo de Billetera
+1. Especifique `address`, `contract_address` y `chain_id` en `example/wallet_balance.php`.
+2. Ejecute `php example/wallet_balance.php`.

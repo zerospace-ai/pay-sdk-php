@@ -90,3 +90,7 @@ SDK のルートディレクトリで `composer install` コマンドを実行�
 #### レジ注文の作成
 1. `example/new_order.php` で `outOrderNo`, `tokenId`, `quantity`, `notifyUrl` を指定します。
 2. `php example/new_order.php` を実行します。
+
+#### ウォレット残高照会
+1. `example/wallet_balance.php` で `address`, `contract_address`, `chain_id` を指定します。
+2. `php example/wallet_balance.php` を実行します。

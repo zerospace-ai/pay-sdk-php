@@ -13,6 +13,7 @@
 7. [充值和提现回调通知 (Webhook)](#7-充值和提现回调通知-webhook)
 8. [创建收银台订单 (new_order)](#8-创建收银台订单-new_order)
 9. [收银台订单支付成功回调 (Webhook)](#9-收银台订单支付成功回调-webhook)
+10. [查询钱包余额 (getWalletBalance)](#10-查询钱包余额-getwalletbalance)
 
 ---
 
@@ -343,3 +344,56 @@ curl --location 'https://sandbox-api.privatex.io/sdk/api/v2/exchange/cashier/new
 
 ### 业务端（商户）需响应的内容
 接收成功请返回包含 `{"code": "1", "message": "success"}` 的 JSON 响应体。
+
+---
+
+## 10. 查询钱包余额 (getWalletBalance)
+
+### 接口说明
+查询指定区块链网络上某个钱包地址的代币或主币余额。
+
+### HTTP 请求
+* **URL:** `https://sandbox-api.privatex.io/sdk/wallet/balance`
+* **方法:** `POST`
+
+### 请求参数
+| 参数名称 | 必填 | 类型 | 说明 |
+| :--- | :--- | :--- | :--- |
+| `address` | 是 | string | 钱包地址 |
+| `contractAddress` | 是 | string | 合约地址或代币标识（如 `"XRP"`、`"USDT"`） |
+| `chainId` | 是 | integer | 链 ID（如 `5` 为 XRP，`1` 为 Ethereum，`56` 为 BNB Chain） |
+
+### 响应参数
+*(包含公共信息)*
+| 参数名称 | 类型 | 说明 |
+| :--- | :--- | :--- |
+| `code` | integer | 全局状态码（`1` 表示成功） |
+| `msg` | string | 状态描述信息 |
+| `data` | string | 余额数量（最小单位字符串） |
+| `timestamp` | string | 响应时间戳（毫秒） |
+| `sign` | string | 平台数据签名 |
+
+### 示例代码 (cURL)
+```bash
+curl --location --request POST 'https://sandbox-api.privatex.io/sdk/wallet/balance' \
+--header 'key: your_api_key' \
+--header 'sign: your_md5_sign' \
+--header 'Content-Type: application/json' \
+--header 'timestamp: 1725076567682' \
+--data-raw '{
+  "address":"rXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+  "contractAddress":"XRP",
+  "chainId":5
+}'
+```
+
+### 响应示例
+```json
+{
+  "sign" : "",
+  "timestamp" : "1725432397796",
+  "data" : "1979984",
+  "msg" : "ok",
+  "code" : 1
+}
+```

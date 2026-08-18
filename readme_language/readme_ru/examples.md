@@ -90,3 +90,7 @@ SDK предоставляет скрипты командной строки д
 #### Создать ордер кассира
 1. Укажите `outOrderNo`, `tokenId`, `quantity` и `notifyUrl` в `example/new_order.php`.
 2. Запустите `php example/new_order.php`.
+
+#### Запрос баланса кошелька
+1. Укажите `address`, `contract_address` и `chain_id` в `example/wallet_balance.php`.
+2. Запустите `php example/wallet_balance.php`.

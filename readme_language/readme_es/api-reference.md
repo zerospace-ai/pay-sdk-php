@@ -13,6 +13,7 @@ Este documento detalla todos los puntos finales de la API del CryptoPay PHP SDK,
 7. [Notificación de Devolución de Llamada de Depósito y Retiro (Webhook)](#7-notificación-de-devolución-de-llamada-de-depósito-y-retiro-webhook)
 8. [Crear Orden de Cajero (new_order)](#8-crear-orden-de-cajero-new_order)
 9. [Devolución de Llamada de Éxito de Pago de Orden de Cajero (Webhook)](#9-devolución-de-llamada-de-éxito-de-pago-de-orden-de-cajero-webhook)
+10. [Consultar Saldo de Billetera (getWalletBalance)](#10-consultar-saldo-de-billetera-getwalletbalance)
 
 ---
 
@@ -343,3 +344,56 @@ Cuando un usuario completa un pago a través del cajero, el sistema enviará una
 
 ### Respuesta Esperada del Comerciante
 Si se recibe con éxito, devuelva un cuerpo de respuesta JSON que contenga `{"code": "1", "message": "success"}`.
+
+---
+
+## 10. Consultar Saldo de Billetera (getWalletBalance)
+
+### Descripción de la API
+Consulta el saldo de tokens o monedas para una dirección de billetera especificada en una red blockchain determinada.
+
+### Solicitud HTTP
+* **URL:** `https://sandbox-api.privatex.io/sdk/wallet/balance`
+* **Método:** `POST`
+
+### Parámetros de Solicitud
+| Nombre del Parámetro | Requerido | Tipo | Descripción |
+| :--- | :--- | :--- | :--- |
+| `address` | Sí | string | Dirección de la billetera |
+| `contractAddress` | Sí | string | Dirección del contrato o símbolo del token (p. ej., `"XRP"`, `"USDT"`) |
+| `chainId` | Sí | integer | ID de la cadena (p. ej., `5` para XRP, `1` para Ethereum, `56` para BNB Chain) |
+
+### Parámetros de Respuesta
+*(Incluye Información Global)*
+| Nombre del Parámetro | Tipo | Descripción |
+| :--- | :--- | :--- |
+| `code` | integer | Código de estado global (`1` para éxito) |
+| `msg` | string | Descripción del estado |
+| `data` | string | Cantidad de saldo de token/moneda (en unidades mínimas) |
+| `timestamp` | string | Marca de tiempo de respuesta (milisegundos) |
+| `sign` | string | Firma de datos de la plataforma |
+
+### Código de Ejemplo (cURL)
+```bash
+curl --location --request POST 'https://sandbox-api.privatex.io/sdk/wallet/balance' \
+--header 'key: your_api_key' \
+--header 'sign: your_md5_sign' \
+--header 'Content-Type: application/json' \
+--header 'timestamp: 1725076567682' \
+--data-raw '{
+  "address":"rXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+  "contractAddress":"XRP",
+  "chainId":5
+}'
+```
+
+### Ejemplo de Respuesta
+```json
+{
+  "sign" : "",
+  "timestamp" : "1725432397796",
+  "data" : "1979984",
+  "msg" : "ok",
+  "code" : 1
+}
+```
