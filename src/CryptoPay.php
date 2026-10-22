@@ -87,7 +87,7 @@ class CryptoPay
      * @return bool
      */
     public function verifyWithdrawRsaSignature($data){
-        return $this->client->checkwithdrawSignature($data, $data['sign']);
+        return $this->client->checkWithdrawSignature($data, $data['sign']);
     }
 
     /**

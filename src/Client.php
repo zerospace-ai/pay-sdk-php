@@ -130,7 +130,7 @@ class Client
         return $result === 1 ? true : false;
     }
     /**
-     * 递归把值转成字符串
+     * Recursively convert value to string
      */
     private static function valueAsString($value): string
     {
@@ -143,16 +143,16 @@ class Client
         } elseif (is_string($value)) {
             return $value;
         } elseif (is_array($value)) {
-            // 区分数组（索引）还是对象（关联数组）
+            // Distinguish between indexed array and associative array (object)
             if (array_keys($value) === range(0, count($value) - 1)) {
-                // 索引数组
+                // Indexed array
                 $str = '';
                 foreach ($value as $item) {
                     $str .= self::valueAsString($item);
                 }
                 return $str;
             } else {
-                // 关联数组（object），按 key 排序（忽略大小写）
+                // Associative array (object), sort by key (case-insensitive)
                 uksort($value, function ($a, $b) {
                     return strcasecmp($a, $b);
                 });
@@ -167,11 +167,11 @@ class Client
     }
 
     /**
-     * 等价 Go 的 getSignString
+     * Equivalent to Go getSignString
      */
     public static function getSignString(array $data): string
     {
-        unset($data['sign']); // 去掉 sign
+        unset($data['sign']); // Remove sign
 
         // Top-level keys must be sorted case-sensitively (ASCII order) to match Go's sort.Strings
         ksort($data, SORT_STRING);
@@ -199,10 +199,14 @@ class Client
             "Content-Type:application/json",
             "timestamp:{$this->timestamp}",
         ];
-        $curl = curl_init(); //初始化
+        $timeout = isset($this->config['timeout']) ? (int)$this->config['timeout'] : 15;
+        $connectTimeout = isset($this->config['connect_timeout']) ? (int)$this->config['connect_timeout'] : 5;
+        $curl = curl_init(); // Initialize
         curl_setopt($curl, CURLOPT_URL, $url);
-        curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, FALSE);
-        curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, FALSE);
+        curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, TRUE);
+        curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, 2);
+        curl_setopt($curl, CURLOPT_TIMEOUT, $timeout);
+        curl_setopt($curl, CURLOPT_CONNECTTIMEOUT, $connectTimeout);
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
         curl_setopt($curl, CURLOPT_POST, 1);
         curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode($data));
