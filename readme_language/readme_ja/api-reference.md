@@ -272,78 +272,97 @@ curl --location 'https://sandbox-api.privatex.io/sdk/partner/UserWithdrawByOpenI
 ## 8. レジ注文の作成 (new_order)
 
 ### API の説明
-このインターフェースは、加盟店が支払いまたはチャージリクエストを開始するために使用されます。システムは支払いアドレス（レジ URL）を返し、ユーザーはこのアドレスにアクセスして支払いを完了できます。
+このインターフェースは、加盟店が支払いまたはチャージリクエストを開始するために使用されます。システムは受取アドレスとレジページリンク（Cashier URL）を返し、ユーザーはこのリンクにアクセスして支払い手続きを完了できます。
 
 ### HTTP リクエスト
-* **URL:** `https://sandbox-api.privatex.io/sdk/api/v2/exchange/cashier/newOrder`
+* **URL:** `https://vapi.dogpay.ai/sdk/api/v2/exchange/cashier/newOrder`
 * **メソッド:** `POST`
 
 ### リクエストパラメーター
 | パラメーター名 | 必須 | タイプ | 説明 |
 | :--- | :--- | :--- | :--- |
-| `outOrderNo` | はい | string | 加盟店注文 ID |
-| `tokenId` | はい | int | トークン ID |
-| `quantity` | はい | float | 支払い金額 |
-| `notifyUrl` | いいえ | string | 支払い成功後のコールバック通知 URL |
+| `outOrderNo` | はい | string | 加盟店側の一意の注文番号（プラットフォーム全体で一意。重複防止のため加盟店プレフィックスの付与を推奨） |
+| `outUserId` | モードによる | string | 加盟店側のユーザー ID。**アドレスプールモードが無効の場合は必須**（未指定時は `10502` エラー）。アドレスプールモード（`address_reuse_mode=1`）有効時は省略可能 |
+| `tokenId` | はい | integer | トークン ID（チェーンも同時に決定） |
+| `quantity` | はい | decimal | 支払数量（`> 0` 必須。`0.01` のような通常の小数表記を推奨、指数表記は避けてください） |
+| `notifyUrl` | いいえ | string | 支払い完了後の非同期コールバック通知先 URL（省略時は加盟店管理画面のデフォルト通知先を使用） |
+| `orderDetail` | いいえ | string | 注文の説明（そのまま保存されます） |
+
+> **2つのアドレスモード（`outUserId` の違い）：**
+> * **固定アドレスモード：** `outUserId` を指定すると `(加盟店, outUserId, チェーン)` ごとに固定アドレスが割り当てられます。アドレスプールモードが無効な加盟店は `outUserId` の指定が**必須**です（未指定は `10502`）。
+> * **アドレスプールモード：** アドレス再利用（`address_reuse_mode=1`）が有効な状態で `outUserId` を省略（空文字ではなくフィールド自体を省略）すると、空きプールから専用アドレスが割り当てられます。なお、このモードではレスポンスおよびコールバックの `outUserId` はプールアドレスの元の紐付けユーザー ID となるため、照合には必ず `outOrderNo` / `orderNo`（コールバックでは `outOrderId` / `orderId`）を使用してください。
 
 ### 応答パラメーター
 *(グローバル情報を含む)*
 | パラメーター名 | タイプ | 説明 |
 | :--- | :--- | :--- |
-| `data.orderNo` | string | プラットフォームが生成した注文 ID |
-| `data.outOrderNo` | string | 加盟店注文 ID |
-| `data.outUserId` | string | ユーザー ID |
-| `data.tokenId` | int | トークン ID |
-| `data.quantity` | string | 注文金額 |
-| `data.amount` | string | 支払い金額 |
-| `data.amountUsdt` | string | 同等の USDT 額 |
-| `data.network` | string | ネットワーク名 |
-| `data.symbol` | string | トークンシンボル |
-| `data.payUrl` | string | **レジ支払いリンク**。ユーザーをこの URL に誘導してください。 |
+| `data.orderNo` | string | プラットフォームによって生成された一意の注文 ID |
+| `data.outOrderNo` | string | 加盟店から渡された元の注文 ID |
+| `data.outUserId` | string | 注文に紐づくユーザー ID（アドレスプールモード時はプールアドレス元の紐付けユーザー ID） |
+| `data.tokenId` | integer | トークン ID |
+| `data.quantity` | string | 支払数量（JSON 上は文字列） |
+| `data.addresses` | string | 受取アドレス（単一アドレス。大文字・小文字を区別するためそのまま表示してください） |
+| `data.cashierUrl` | string | **コアフィールド**: レジページの URL。加盟店はユーザーをこのリンクへ誘導して決済を行います |
 
 ### コード例 (cURL)
 ```bash
-curl --location 'https://sandbox-api.privatex.io/sdk/api/v2/exchange/cashier/newOrder' \
---header 'key: vratson2i5hjxgkd' \
---header 'sign: 0592dc64d480fb119d1e07ce06011db8' \
---header 'clientSign: xxxxxxxxxxxxxxxxx' \
+curl --location 'https://vapi.dogpay.ai/sdk/api/v2/exchange/cashier/newOrder' \
+--header 'key: your_api_key' \
+--header 'sign: 1b5b885633560f447f38073f964ad51b' \
+--header 'clientSign: your_rsa_sign_base64' \
 --header 'Content-Type: application/json' \
---header 'timestamp: 1725076567682' \
+--header 'timestamp: 1770606706659' \
 --data '{
-    "outOrderNo": "order_123456",
-    "tokenId": 4,
-    "quantity": 100.5,
-    "notifyUrl": "https://your-domain.com/callback"
+  "outOrderNo": "1234623",
+  "outUserId": "user_10086",
+  "tokenId": 6,
+  "quantity": 0.01,
+  "notifyUrl": "https://your-domain.com/callback",
+  "orderDetail": "VIP会员充值"
 }'
 ```
+
+*(アドレスプールモード有効時は `outUserId` と `orderDetail` を省略できます。省略されたフィールドは署名計算に含まれません。)*
 
 ---
 
 ## 9. レジ注文支払い成功コールバック (Webhook)
 
 ### コールバックの説明
-ユーザーがレジを通じて支払いを完了すると、システムは加盟店の事前設定された `notifyUrl` に非同期通知を送信します。
+ユーザーが全額の支払いを完了した時点（`orderStatus=2`）でのみ、DogPay は注文時に指定された `notifyUrl`（未指定時はデフォルト通知先）へ非同期コールバック通知を送信します。一部入金（`1`）や期限切れ（`-1`）ではコールバックは送信されません。
 
 ### プラットフォームによって開始される HTTP リクエスト
 * **メソッド:** `POST`
-* **URL:** 加盟店提供の `notifyUrl`
+* **URL:** 加盟店から提供された `notifyUrl`（またはデフォルト通知先）
 
 ### コールバックパラメーター
-| パラメーター名 | 必須 | タイプ | 説明 |
-| :--- | :--- | :--- | :--- |
-| `orderId` | はい | string | プラットフォーム注文 ID |
-| `outOrderId` | はい | string | 加盟店注文 ID |
-| `orderStatus` | はい | string | 注文ステータス (success) |
-| `orderType` | はい | string | 注文タイプ |
-| `tokenId` | はい | int | トークン ID |
-| `amount` | はい | string | 支払い金額 |
-| `symbol` | はい | string | トークンシンボル |
-| `txId` | はい | string | オンチェーン トランザクション ハッシュ |
-| `txTime` | はい | string | トランザクション時間 |
-| `sign` | はい | string | 署名 |
+| パラメーター名 | タイプ | 説明 |
+| :--- | :--- | :--- |
+| `orderId` | string | プラットフォームのシステム注文 ID（注文作成時の `data.orderNo`） |
+| `outOrderId` | string | 加盟店の元の注文 ID（注文作成時の `outOrderNo`） |
+| `outUserId` | string | 注文に紐づくユーザー ID（アドレスモードの注記を参照） |
+| `orderType` | string | 注文タイプ（`1` = 入金/代収） |
+| `chainId` | string | チェーン ID |
+| `tokenId` | string | トークン ID |
+| `quantity` | string | 支払予定数量 |
+| `quantityPaid` | string | **ユーザーが実際に支払った累計数量** |
+| `totalAmount` | string | 支払予定の USD 換算額 |
+| `totalAmountPaid` | string | 実支払いの USD 換算額 |
+| `exchangeAddress` | string | 受取アドレス |
+| `orderStatus` | string | **注文ステータス**: コールバック時は `2`（完了）固定 |
+| `txHash` | string | 注文に一致した最後のオンチェーン取引ハッシュ |
+| `createdAt` | string | 注文作成日時 |
+| `timestamp` | string | コールバック送信タイムスタンプ（ミリ秒） |
+| `sign` | string | **データ署名**（偽造防止のためプラットフォーム公開鍵で検証してください） |
 
 ### 加盟店からの予想される応答
-正常に受信した場合は、`{"code": "1", "message": "success"}` を含む JSON 応答本文を返してください。
+正常に受信した場合は、次の JSON を返してください（`code` が `"0"` または数値 `0` の場合のみ成功とみなされ、それ以外は再送されます）：
+```json
+{
+  "code": "0",
+  "message": "success"
+}
+```
 
 ---
 

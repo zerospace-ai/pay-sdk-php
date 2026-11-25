@@ -88,7 +88,7 @@ SDK 提供了快速測試各接口的命令行腳本。
 2. 運行 `php example/withdraw.php`。
 
 #### 創建收銀台訂單
-1. 在 `example/new_order.php` 中指定 `outOrderNo`, `tokenId`, `quantity`, `notifyUrl`。
+1. 在 `example/new_order.php` 中指定 `outOrderNo`, `outUserId`（固定地址模式必填）, `tokenId`, `quantity`, `notifyUrl`, `orderDetail`。
 2. 運行 `php example/new_order.php`。
 
 #### 查詢錢包餘額

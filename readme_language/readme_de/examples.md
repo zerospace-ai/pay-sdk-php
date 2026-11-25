@@ -88,7 +88,7 @@ Führen Sie den Befehl `composer install` im SDK-Stammverzeichnis aus, um die er
 2. Führen Sie `php example/withdraw.php` aus.
 
 #### Kassierer-Auftrag erstellen
-1. Geben Sie `outOrderNo`, `tokenId`, `quantity` und `notifyUrl` in `example/new_order.php` an.
+1. Geben Sie `outOrderNo`, `outUserId` (im festen Adressmodus erforderlich), `tokenId`, `quantity`, `notifyUrl` und `orderDetail` in `example/new_order.php` an.
 2. Führen Sie `php example/new_order.php` aus.
 
 #### Wallet-Guthaben abfragen

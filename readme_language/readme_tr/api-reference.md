@@ -272,78 +272,97 @@ Başarıyla alınırsa, lütfen `{"code": 0}` içeren bir JSON yanıt gövdesi d
 ## 8. Kasiyer Siparişi Oluştur (new_order)
 
 ### API Açıklaması
-Bu arayüz, tüccarlar tarafından ödeme veya yükleme isteklerini başlatmak için kullanılır. Sistem bir ödeme adresi (Kasiyer URL'si) döndürür ve kullanıcılar ödemeyi tamamlamak için bu adresi ziyaret edebilir.
+Bu arayüz, tüccarların ödeme veya yükleme talepleri başlatması için kullanılır. Sistem bir ödeme adresi ve kasa sayfası bağlantısı (Cashier URL) döndürür; kullanıcı bu bağlantı üzerinden ödemeyi tamamlayabilir.
 
 ### HTTP İsteği
-* **URL:** `https://sandbox-api.privatex.io/sdk/api/v2/exchange/cashier/newOrder`
+* **URL:** `https://vapi.dogpay.ai/sdk/api/v2/exchange/cashier/newOrder`
 * **Yöntem:** `POST`
 
 ### İstek Parametreleri
-| Parametre Adı | Zorunlu | Tür | Açıklama |
+| Parametre Adı | Zorunlu mu? | Tür | Açıklama |
 | :--- | :--- | :--- | :--- |
-| `outOrderNo` | Evet | string | Tüccar Sipariş Kimliği |
-| `tokenId` | Evet | int | Token Kimliği |
-| `quantity` | Evet | float | Ödeme Tutarı |
-| `notifyUrl` | Hayır | string | Başarılı ödemeden sonra geri çağırma bildirim URL'si |
+| `outOrderNo` | Evet | string | Tüccar tarafındaki benzersiz sipariş kimliği (platform genelinde benzersizdir; tüccar öneki eklenmesi önerilir) |
+| `outUserId` | Moda bağlı | string | Tüccar tarafındaki kullanıcı kimliği. **Adres havuzu modu etkin değilse zorunludur** (aksi halde `10502` hatası döner); adres havuzu modunda (`address_reuse_mode=1`) gönderilmeyebilir |
+| `tokenId` | Evet | integer | Token Kimliği (blockchain ağını da belirler) |
+| `quantity` | Evet | decimal | Ödenecek token miktarı (`> 0` olmalıdır; `0.01` gibi düz ondalık gösterim kullanın, bilimsel gösterimden kaçının) |
+| `notifyUrl` | Hayır | string | Ödeme tamamlandıktan sonraki asenkron geri çağırma URL'si (belirtilmezse tüccar panelindeki varsayılan adres kullanılır) |
+| `orderDetail` | Hayır | string | Sipariş açıklaması (olduğu gibi kaydedilir) |
+
+> **İki Adres Modu (`outUserId`):**
+> * **Sabit adres modu:** `outUserId` gönderildiğinde `(tüccar, outUserId, ağ)` başına sabit bir adres atanır. Adres havuzu modu etkin olmayan tüccarlar `outUserId` değerini **mutlaka** göndermelidir; aksi halde `10502` hatası döner.
+> * **Adres havuzu modu:** `address_reuse_mode=1` etkinken `outUserId` gönderilmezse (boş string değil, alan tamamen hariç tutulmalı/`null`) boşta olan havuzdan özel bir adres atanır. Not: Bu modda yanıttaki `data.outUserId` ve geri çağırmadaki `outUserId` havuz adresinin ilk bağlı kullanıcısını gösterir — mutabakat için daima `outOrderNo` / `orderNo` (`outOrderId` / `orderId`) kullanın.
 
 ### Yanıt Parametreleri
-*(Genel Bilgileri İçerir)*
+*(Global Bilgileri İçerir)*
 | Parametre Adı | Tür | Açıklama |
 | :--- | :--- | :--- |
-| `data.orderNo` | string | Platform tarafından oluşturulan Sipariş Kimliği |
-| `data.outOrderNo` | string | Tüccar Sipariş Kimliği |
-| `data.outUserId` | string | Kullanıcı Kimliği |
-| `data.tokenId` | int | Token Kimliği |
-| `data.quantity` | string | Sipariş Tutarı |
-| `data.amount` | string | Ödeme Tutarı |
-| `data.amountUsdt` | string | Eşdeğer USDT Tutarı |
-| `data.network` | string | Ağ Adı |
-| `data.symbol` | string | Token Sembolü |
-| `data.payUrl` | string | **Kasiyer Ödeme Bağlantısı**, kullanıcıyı bu URL'yi ziyaret etmesi için yönlendirin |
+| `data.orderNo` | string | Platform tarafından oluşturulan benzersiz sipariş kimliği |
+| `data.outOrderNo` | string | Tüccar tarafından iletilen orijinal sipariş kimliği |
+| `data.outUserId` | string | Bağlı kullanıcı kimliği (adres havuzu modunda havuz adresinin orijinal kullanıcı kimliği) |
+| `data.tokenId` | integer | Token Kimliği |
+| `data.quantity` | string | Ödenecek miktar (JSON içinde string) |
+| `data.addresses` | string | Tahsilat adresi (tek adres, büyük/küçük harfe duyarlıdır) |
+| `data.cashierUrl` | string | **Temel Alan**: Kasa sayfası adresi; tüccarların ödeme için kullanıcıları bu bağlantıya yönlendirmesi gerekir |
 
-### Örnek Kod (cURL)
+### Kod Örneği (cURL)
 ```bash
-curl --location 'https://sandbox-api.privatex.io/sdk/api/v2/exchange/cashier/newOrder' \
---header 'key: vratson2i5hjxgkd' \
---header 'sign: 0592dc64d480fb119d1e07ce06011db8' \
---header 'clientSign: xxxxxxxxxxxxxxxxx' \
+curl --location 'https://vapi.dogpay.ai/sdk/api/v2/exchange/cashier/newOrder' \
+--header 'key: your_api_key' \
+--header 'sign: 1b5b885633560f447f38073f964ad51b' \
+--header 'clientSign: your_rsa_sign_base64' \
 --header 'Content-Type: application/json' \
---header 'timestamp: 1725076567682' \
+--header 'timestamp: 1770606706659' \
 --data '{
-    "outOrderNo": "order_123456",
-    "tokenId": 4,
-    "quantity": 100.5,
-    "notifyUrl": "https://your-domain.com/callback"
+  "outOrderNo": "1234623",
+  "outUserId": "user_10086",
+  "tokenId": 6,
+  "quantity": 0.01,
+  "notifyUrl": "https://your-domain.com/callback",
+  "orderDetail": "VIP会员充值"
 }'
 ```
+
+*(Adres havuzu modu etkinse `outUserId` ve `orderDetail` alanları hariç tutulabilir; gönderilmeyen alanlar imzalamaya dahil edilmez.)*
 
 ---
 
 ## 9. Kasiyer Siparişi Ödeme Başarısı Geri Çağırma (Webhook)
 
 ### Geri Çağırma Açıklaması
-Bir kullanıcı kasiyer aracılığıyla ödemeyi tamamladığında sistem, tüccarın önceden ayarlanmış `notifyUrl` adresine eşzamansız bir bildirim gönderir.
+Kullanıcı tam ödemeyi tamamladığında (`orderStatus=2`), DogPay siparişte belirtilen `notifyUrl` adresine (belirtilmemişse varsayılan geri çağırma adresine) asenkron bildirim gönderir. Kısmi ödeme (`1`) ve süresi dolmuş siparişler (`-1`) geri çağırma tetiklemez.
 
 ### Platform Tarafından Başlatılan HTTP İsteği
 * **Yöntem:** `POST`
-* **URL:** Tüccar tarafından sağlanan `notifyUrl`
+* **URL:** Tüccar tarafından sağlanan `notifyUrl` (veya varsayılan geri çağırma URL'si)
 
 ### Geri Çağırma Parametreleri
-| Parametre Adı | Zorunlu | Tür | Açıklama |
-| :--- | :--- | :--- | :--- |
-| `orderId` | Evet | string | Platform Sipariş Kimliği |
-| `outOrderId` | Evet | string | Tüccar Sipariş Kimliği |
-| `orderStatus` | Evet | string | Sipariş Durumu (success) |
-| `orderType` | Evet | string | Sipariş Türü |
-| `tokenId` | Evet | int | Token Kimliği |
-| `amount` | Evet | string | Ödeme Tutarı |
-| `symbol` | Evet | string | Token Sembolü |
-| `txId` | Evet | string | Zincir Üstü İşlem Karması (Hash) |
-| `txTime` | Evet | string | İşlem Zamanı |
-| `sign` | Evet | string | İmza |
+| Parametre Adı | Tür | Açıklama |
+| :--- | :--- | :--- |
+| `orderId` | string | Platform sistem sipariş kimliği (`data.orderNo` ile eşleşir) |
+| `outOrderId` | string | Tüccar orijinal sipariş kimliği (`outOrderNo` ile eşleşir) |
+| `outUserId` | string | Bağlı kullanıcı kimliği (yukarıdaki adres modları notuna bakın) |
+| `orderType` | string | Sipariş türü (`1` = yatırım/tahsilat) |
+| `chainId` | string | Ağ (Chain) Kimliği |
+| `tokenId` | string | Token Kimliği |
+| `quantity` | string | Ödenecek miktar |
+| `quantityPaid` | string | **Kullanıcı tarafından ödenen gerçek toplam miktar** |
+| `totalAmount` | string | Ödenecek tahmini USD değeri |
+| `totalAmountPaid` | string | Ödenen tahmini USD değeri |
+| `exchangeAddress` | string | Tahsilat adresi |
+| `orderStatus` | string | **Sipariş Durumu**: geri çağırmada sabit `2` (tamamlandı) |
+| `txHash` | string | Siparişle eşleşen son zincir üstü işlem hash'i |
+| `createdAt` | string | Sipariş oluşturulma zamanı |
+| `timestamp` | string | Geri çağırma zaman damgası (milisaniye) |
+| `sign` | string | **Veri İmzası** (sahte bildirimleri önlemek için platform açık anahtarıyla doğrulayın) |
 
 ### Tüccardan Beklenen Yanıt
-Başarıyla alınırsa, lütfen `{"code": "1", "message": "success"}` içeren bir JSON yanıt gövdesi döndürün.
+Başarıyla alındıysa aşağıdaki JSON'u döndürün (`code` değeri `"0"` veya `0` olmalıdır; aksi halde platform yeniden dener):
+```json
+{
+  "code": "0",
+  "message": "success"
+}
+```
 
 ---
 

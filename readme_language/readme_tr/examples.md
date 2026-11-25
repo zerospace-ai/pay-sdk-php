@@ -88,7 +88,7 @@ Gerekli bağımlılıkları yüklemek için SDK kök dizininde `composer install
 2. `php example/withdraw.php` komutunu çalıştırın.
 
 #### Kasiyer Siparişi Oluştur
-1. `example/new_order.php` dosyasında `outOrderNo`, `tokenId`, `quantity` ve `notifyUrl` değerlerini belirtin.
+1. `example/new_order.php` dosyasında `outOrderNo`, `outUserId` (sabit adres modunda zorunlu), `tokenId`, `quantity`, `notifyUrl` ve `orderDetail` değerlerini belirtin.
 2. `php example/new_order.php` komutunu çalıştırın.
 
 #### Cüzdan Bakiyesini Sorgula

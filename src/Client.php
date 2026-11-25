@@ -67,20 +67,25 @@ class Client
     }
 
     /**
-     * @param $data
+     * @param array $data
+     * @param string|null $timestamp
      * @return string
      */
-    public function sign($data)
+    public function sign($data, $timestamp = null)
     {
-
-        ksort($data);
+        unset($data['sign']);
+        ksort($data, SORT_STRING);
         $dataArray = [];
         foreach ($data as $key => $value) {
+            if ($value === null) {
+                continue;
+            }
             $dataArray[] = "{$key}={$value}";
         }
         $dataStr = implode('&', $dataArray);
+        $ts = $timestamp !== null ? (string) $timestamp : $this->timestamp;
 
-        return md5($this->config['ApiSecret'] . $dataStr . $this->timestamp);
+        return md5($this->config['ApiSecret'] . $dataStr . $ts);
     }
 
     /**
@@ -89,10 +94,17 @@ class Client
      */
     public function encryption($data)
     {
-        if (is_array($data))
-            $signString = self::getSignString($data);
-        else
+        if (is_array($data)) {
+            $filtered = [];
+            foreach ($data as $k => $v) {
+                if ($v !== null) {
+                    $filtered[$k] = $v;
+                }
+            }
+            $signString = self::getSignString($filtered);
+        } else {
             $signString = $data;
+        }
         $privKeyId = openssl_pkey_get_private($this->config['RsaPrivateKey']);
         $signature = '';
         openssl_sign($signString, $signature, $privKeyId, OPENSSL_ALGO_MD5);
@@ -190,15 +202,24 @@ class Client
      */
     public function post($url, $data)
     {
-        $sign = $this->sign($data);
-        $clientSign = $this->encryption($data);
+        $filteredData = [];
+        foreach ($data as $k => $v) {
+            if ($v !== null) {
+                $filteredData[$k] = $v;
+            }
+        }
+        $this->timestamp = $this->getMillisecond();
+        $sign = $this->sign($filteredData, $this->timestamp);
         $header = [
             "key:{$this->config['ApiKey']}",
             "sign:{$sign}",
-            "clientSign:{$clientSign}",
             "Content-Type:application/json",
             "timestamp:{$this->timestamp}",
         ];
+        if (!empty($this->config['RsaPrivateKey'])) {
+            $clientSign = $this->encryption($filteredData);
+            $header[] = "clientSign:{$clientSign}";
+        }
         $timeout = isset($this->config['timeout']) ? (int)$this->config['timeout'] : 15;
         $connectTimeout = isset($this->config['connect_timeout']) ? (int)$this->config['connect_timeout'] : 5;
         $curl = curl_init(); // Initialize
@@ -209,7 +230,7 @@ class Client
         curl_setopt($curl, CURLOPT_CONNECTTIMEOUT, $connectTimeout);
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
         curl_setopt($curl, CURLOPT_POST, 1);
-        curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode($data));
+        curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode($filteredData, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
         curl_setopt($curl, CURLOPT_HEADER, 0);
         curl_setopt($curl, CURLOPT_HTTPHEADER, $header);
         $result = curl_exec($curl);

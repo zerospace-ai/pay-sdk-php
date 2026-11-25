@@ -88,7 +88,7 @@ SDK のルートディレクトリで `composer install` コマンドを実行�
 2. `php example/withdraw.php` を実行します。
 
 #### レジ注文の作成
-1. `example/new_order.php` で `outOrderNo`, `tokenId`, `quantity`, `notifyUrl` を指定します。
+1. `example/new_order.php` で `outOrderNo`, `outUserId`（固定アドレスモード時は必須）, `tokenId`, `quantity`, `notifyUrl`, `orderDetail` を指定します。
 2. `php example/new_order.php` を実行します。
 
 #### ウォレット残高照会

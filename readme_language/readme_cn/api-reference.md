@@ -272,78 +272,97 @@ curl --location 'https://sandbox-api.privatex.io/sdk/partner/UserWithdrawByOpenI
 ## 8. 创建收银台订单 (new_order)
 
 ### 接口说明
-该接口用于商户发起支付或充值请求，系统会返回一个支付地址（收银台 URL），用户访问该地址即可完成支付。
+该接口用于商户发起支付或充值请求，系统会返回收款地址和收银台页面链接（Cashier URL），用户访问该地址即可完成后续支付流程。
 
 ### HTTP 请求
-* **URL:** `https://sandbox-api.privatex.io/sdk/api/v2/exchange/cashier/newOrder`
+* **URL:** `https://vapi.dogpay.ai/sdk/api/v2/exchange/cashier/newOrder`
 * **方法:** `POST`
 
 ### 请求参数
 | 参数名称 | 必填 | 类型 | 说明 |
 | :--- | :--- | :--- | :--- |
-| `outOrderNo` | 是 | string | 商户订单号 |
-| `tokenId` | 是 | int | 币种 ID |
-| `quantity` | 是 | float | 支付金额 |
-| `notifyUrl` | 否 | string | 支付成功后的回调通知地址 |
+| `outOrderNo` | 是 | string | 商户侧唯一订单号，全平台唯一，用于防止重复提交及对账（建议带商户前缀） |
+| `outUserId` | 视模式 | string | 商户侧用户 ID。**未开启地址池模式时必填**（否则返回 `10502` 参数错误）；已开启地址池模式（`address_reuse_mode=1`）时可不传 |
+| `tokenId` | 是 | integer | 币种 ID（同时决定链） |
+| `quantity` | 是 | decimal | 应付数量（币的数量，必须 `> 0`；建议用普通小数写法如 `0.01`，不要用科学计数法） |
+| `notifyUrl` | 否 | string | 支付完成后的异步回调通知地址（不传时回调至商户后台配置的默认回调地址） |
+| `orderDetail` | 否 | string | 订单描述，原样保存 |
+
+> **两种地址模式说明（`outUserId`）：**
+> * **固定地址模式：** 传入 `outUserId`（无论商户是否开启地址池），按 `(商户, outUserId, 链)` 分配固定地址。未开启地址池模式的商户**必须**传 `outUserId`，否则返回 `10502`。
+> * **地址池模式：** 不传 `outUserId`（须省略该字段，不能传空串）且商户开启了地址复用 `address_reuse_mode=1`，从空闲地址池分配独占地址。注意：此模式下响应和回调中的 `outUserId` 为该池地址原绑定用户 ID，对账请使用 `outOrderNo` / `orderNo`（回调为 `outOrderId` / `orderId`）。
 
 ### 响应参数
 *(包含公共信息)*
 | 参数名称 | 类型 | 说明 |
 | :--- | :--- | :--- |
-| `data.orderNo` | string | 平台生成的订单号 |
-| `data.outOrderNo` | string | 商户订单号 |
-| `data.outUserId` | string | 用户 ID |
-| `data.tokenId` | int | 币种 ID |
-| `data.quantity` | string | 订单金额 |
-| `data.amount` | string | 支付金额 |
-| `data.amountUsdt` | string | 折合 USDT 金额 |
-| `data.network` | string | 网络名称 |
-| `data.symbol` | string | 币种符号 |
-| `data.payUrl` | string | **收银台支付链接**，需引导用户跳转访问 |
+| `data.orderNo` | string | 平台生成的唯一订单号 |
+| `data.outOrderNo` | string | 商户传入的原始订单号 |
+| `data.outUserId` | string | 订单绑定的用户 ID（地址池模式下为池地址原绑定用户 ID） |
+| `data.tokenId` | integer | 币种 ID |
+| `data.quantity` | string | 应付数量（JSON 中为字符串） |
+| `data.addresses` | string | 收款地址（单个地址，区分大小写，请原样展示） |
+| `data.cashierUrl` | string | **核心字段**：收银台页面地址，商户需引导用户跳转至该链接进行支付 |
 
 ### 示例代码 (cURL)
 ```bash
-curl --location 'https://sandbox-api.privatex.io/sdk/api/v2/exchange/cashier/newOrder' \
---header 'key: vratson2i5hjxgkd' \
---header 'sign: 0592dc64d480fb119d1e07ce06011db8' \
---header 'clientSign: xxxxxxxxxxxxxxxxx' \
+curl --location 'https://vapi.dogpay.ai/sdk/api/v2/exchange/cashier/newOrder' \
+--header 'key: your_api_key' \
+--header 'sign: 1b5b885633560f447f38073f964ad51b' \
+--header 'clientSign: your_rsa_sign_base64' \
 --header 'Content-Type: application/json' \
---header 'timestamp: 1725076567682' \
+--header 'timestamp: 1770606706659' \
 --data '{
-    "outOrderNo": "order_123456",
-    "tokenId": 4,
-    "quantity": 100.5,
-    "notifyUrl": "https://your-domain.com/callback"
+  "outOrderNo": "1234623",
+  "outUserId": "user_10086",
+  "tokenId": 6,
+  "quantity": 0.01,
+  "notifyUrl": "https://your-domain.com/callback",
+  "orderDetail": "VIP会员充值"
 }'
 ```
+
+*(若商户已开启地址池模式，可省略 `outUserId` 和 `orderDetail` 字段，且未传字段不参与签名。)*
 
 ---
 
 ## 9. 收银台订单支付成功回调 (Webhook)
 
 ### 回调说明
-当用户通过收银台完成支付后，系统会向商户预设的 `notifyUrl` 发送异步通知。
+当用户在收银台完成全额支付（`orderStatus=2`）后，DogPay 会向订单指定的 `notifyUrl`（未传时使用商户后台默认回调地址）发送异步回调通知。部分付款（`1`）和过期（`-1`）不会触发回调。
 
 ### 平台发起的 HTTP 请求
 * **方法:** `POST`
-* **URL:** 商户提供的 `notifyUrl`
+* **URL:** 商户提供的 `notifyUrl`（或默认回调地址）
 
 ### 回调参数
-| 参数名称 | 必填 | 类型 | 说明 |
-| :--- | :--- | :--- | :--- |
-| `orderId` | 是 | string | 平台订单号 |
-| `outOrderId` | 是 | string | 商户订单号 |
-| `orderStatus` | 是 | string | 订单状态 (success) |
-| `orderType` | 是 | string | 订单类型 |
-| `tokenId` | 是 | int | 币种 ID |
-| `amount` | 是 | string | 支付金额 |
-| `symbol` | 是 | string | 币种符号 |
-| `txId` | 是 | string | 链上交易 Hash |
-| `txTime` | 是 | string | 交易时间 |
-| `sign` | 是 | string | 签名 |
+| 参数名称 | 类型 | 说明 |
+| :--- | :--- | :--- |
+| `orderId` | string | 平台系统订单号（对应下单返回的 `orderNo`） |
+| `outOrderId` | string | 商户原始订单号（对应下单时的 `outOrderNo`） |
+| `outUserId` | string | 订单绑定用户 ID（地址池模式下为池地址原绑定用户 ID） |
+| `orderType` | string | 订单类型（`1` = 充值代收） |
+| `chainId` | string | 链 ID |
+| `tokenId` | string | 币种 ID |
+| `quantity` | string | 应付数量 |
+| `quantityPaid` | string | **用户实付累计数量** |
+| `totalAmount` | string | 应付 USD 估值 |
+| `totalAmountPaid` | string | 实付 USD 估值 |
+| `exchangeAddress` | string | 收款地址 |
+| `orderStatus` | string | **订单状态**：回调时固定为 `2`（已完成） |
+| `txHash` | string | 最后一笔匹配到该订单的链上交易哈希 |
+| `createdAt` | string | 订单创建时间 |
+| `timestamp` | string | 回调发送时间戳（毫秒） |
+| `sign` | string | **数据签名**（用于商户使用平台公钥验签，防止回调被伪造） |
 
 ### 业务端（商户）需响应的内容
-接收成功请返回包含 `{"code": "1", "message": "success"}` 的 JSON 响应体。
+接收成功请返回如下 JSON（`code` 为 `"0"` 或数字 `0` 即视为成功，否则平台会继续重试）：
+```json
+{
+  "code": "0",
+  "message": "success"
+}
+```
 
 ---
 

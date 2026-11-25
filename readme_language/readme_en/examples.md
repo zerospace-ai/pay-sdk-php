@@ -88,7 +88,7 @@ Execute the `composer install` command in the SDK root directory to install the 
 2. Run `php example/withdraw.php`.
 
 #### Create Cashier Order
-1. Specify `outOrderNo`, `tokenId`, `quantity`, and `notifyUrl` in `example/new_order.php`.
+1. Specify `outOrderNo`, `outUserId` (required in fixed-address mode), `tokenId`, `quantity`, `notifyUrl`, and `orderDetail` in `example/new_order.php`.
 2. Run `php example/new_order.php`.
 
 #### Query Wallet Balance

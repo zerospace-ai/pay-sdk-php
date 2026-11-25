@@ -88,7 +88,7 @@ SDK предоставляет скрипты командной строки д
 2. Запустите `php example/withdraw.php`.
 
 #### Создать ордер кассира
-1. Укажите `outOrderNo`, `tokenId`, `quantity` и `notifyUrl` в `example/new_order.php`.
+1. Укажите `outOrderNo`, `outUserId` (обязательно в режиме фиксированного адреса), `tokenId`, `quantity`, `notifyUrl` и `orderDetail` в `example/new_order.php`.
 2. Запустите `php example/new_order.php`.
 
 #### Запрос баланса кошелька

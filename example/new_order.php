@@ -15,12 +15,14 @@ function main() {
     $cryptoPay = new CryptoPay($config);
 
     $outOrderNo = 'order_' . time();
-    $tokenId = 4; // USDT-TRON
-    $quantity = 100.5;
+    $outUserId = 'user_10086'; // Required in fixed-address mode; pass null only if address-pool mode is enabled
+    $tokenId = 6; // USDT-BSC
+    $quantity = 0.01;
     $notifyUrl = 'https://your-domain.com/callback/cashier';
+    $orderDetail = 'VIP membership recharge';
 
     echo "Creating new cashier order...\n";
-    $result = $cryptoPay->newOrder($outOrderNo, $tokenId, $quantity, $notifyUrl);
+    $result = $cryptoPay->newOrder($outOrderNo, $tokenId, $quantity, $notifyUrl, $outUserId, $orderDetail);
     
     print_r($result);
     echo "\n";
@@ -38,7 +40,8 @@ function main() {
 
     echo "verifyRsaSignature success\n";
     echo "Order No: " . $postData['data']['orderNo'] . "\n";
-    echo "Pay URL: " . $postData['data']['payUrl'] . "\n";
+    echo "Deposit Address: " . ($postData['data']['addresses'] ?? '') . "\n";
+    echo "Cashier URL: " . ($postData['data']['cashierUrl'] ?? '') . "\n";
 }
 
 main();

@@ -91,19 +91,49 @@ class CryptoPay
     }
 
     /**
-     * @param $out_order_no
-     * @param $token_id
-     * @param $quantity
-     * @param $notify_url
-     * @return bool|string
+     * Build cashier newOrder request payload, omitting null/empty optional fields.
+     *
+     * @param string $out_order_no
+     * @param int|string $token_id
+     * @param string|int|float $quantity
+     * @param string|null $notify_url
+     * @param string|null $out_user_id
+     * @param string|null $order_detail
+     * @return array
      */
-    public function newOrder($out_order_no, $token_id, $quantity, $notify_url){
+    public function buildNewOrderPayload($out_order_no, $token_id, $quantity, $notify_url = null, $out_user_id = null, $order_detail = null){
         $data = [
             'outOrderNo' => $out_order_no,
-            'tokenId' => $token_id,
+            'tokenId' => (int) $token_id,
             'quantity' => $quantity,
-            'notifyUrl' => $notify_url,
         ];
+
+        if ($out_user_id !== null && $out_user_id !== '') {
+            $data['outUserId'] = $out_user_id;
+        }
+        if ($notify_url !== null && $notify_url !== '') {
+            $data['notifyUrl'] = $notify_url;
+        }
+        if ($order_detail !== null && $order_detail !== '') {
+            $data['orderDetail'] = $order_detail;
+        }
+
+        return $data;
+    }
+
+    /**
+     * Create cashier order
+     *
+     * @param string $out_order_no Merchant unique order number
+     * @param int|string $token_id Token ID
+     * @param string|int|float $quantity Payable token quantity
+     * @param string|null $notify_url Optional async callback URL
+     * @param string|null $out_user_id Merchant user ID (required in fixed-address mode; omit in address-pool mode)
+     * @param string|null $order_detail Optional order description
+     * @return bool|string
+     */
+    public function newOrder($out_order_no, $token_id, $quantity, $notify_url = null, $out_user_id = null, $order_detail = null){
+        $data = $this->buildNewOrderPayload($out_order_no, $token_id, $quantity, $notify_url, $out_user_id, $order_detail);
 
         return $this->client->post("{$this->baseUrl}api/v2/exchange/cashier/newOrder", $data);
     }
